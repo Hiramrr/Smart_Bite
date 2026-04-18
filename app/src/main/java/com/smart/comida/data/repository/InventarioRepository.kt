@@ -85,4 +85,37 @@ class InventarioRepository {
             Result.failure(e)
         }
     }
+
+    // NUEVA FUNCIÓN: Obtener un ingrediente específico por su ID
+    suspend fun obtenerIngredientePorId(id: Int): Result<Ingrediente> {
+        return try {
+            val ingrediente = SupabaseClient.client.postgrest["ingredientes"]
+                .select { filter { eq("id", id) } }
+                .decodeSingle<Ingrediente>() // decodeSingle porque solo esperamos uno
+            Result.success(ingrediente)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // NUEVA FUNCIÓN: Actualizar los datos de un ingrediente
+    suspend fun actualizarIngrediente(
+        id: Int, nombre: String, cantidad: Float,
+        unidad: String?, fechaCaducidad: String?, categoriaId: Int?
+    ): Result<Unit> {
+        return try {
+            val ingredienteActualizado = Ingrediente(
+                id = id, // Es vital pasar el ID para que Supabase sepa cuál editar
+                nombre = nombre, cantidad = cantidad, unidad = unidad,
+                fechaCaducidad = fechaCaducidad, categoriaId = categoriaId
+            )
+
+            SupabaseClient.client.postgrest["ingredientes"]
+                .update(ingredienteActualizado) { filter { eq("id", id) } }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
