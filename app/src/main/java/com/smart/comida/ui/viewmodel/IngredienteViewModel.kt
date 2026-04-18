@@ -8,6 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class IngredienteViewModel : ViewModel() {
     private val repository = InventarioRepository()
@@ -41,9 +44,31 @@ class IngredienteViewModel : ViewModel() {
         }
 
         val cantidad = cantidadStr.toFloatOrNull()
-        if (cantidad == null) {
-            uiState = IngredienteUiState.Error("La cantidad debe ser un número válido.")
+        if (cantidad == null || cantidad < 0) {
+            uiState = IngredienteUiState.Error("La cantidad debe ser un número válido mayor o igual a 0.")
             return
+        }
+
+        // --- NUEVA VALIDACIÓN: Fecha de caducidad menor a hoy ---
+        if (fechaCaducidad.isNotBlank()) {
+            try {
+                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val fechaSeleccionada = sdf.parse(fechaCaducidad)
+
+                // Formateamos y volvemos a parsear la fecha de hoy para asegurarnos
+                // de que ambas fechas estén a las 00:00:00 y la comparación sea justa
+                val hoyStr = sdf.format(Date())
+                val fechaHoy = sdf.parse(hoyStr)
+
+                // Si la fecha seleccionada es ANTERIOR a hoy, bloqueamos el guardado
+                if (fechaSeleccionada != null && fechaHoy != null && fechaSeleccionada.before(fechaHoy)) {
+                    uiState = IngredienteUiState.Error("La fecha de caducidad debe ser mayor o igual a la de hoy.")
+                    return
+                }
+            } catch (e: Exception) {
+                uiState = IngredienteUiState.Error("Formato de fecha inválido.")
+                return
+            }
         }
 
         uiState = IngredienteUiState.Loading

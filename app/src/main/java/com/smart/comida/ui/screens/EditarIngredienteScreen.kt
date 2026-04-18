@@ -144,6 +144,10 @@ fun EditarIngredienteScreen(
                             TextButton(onClick = {
                                 datePickerState.selectedDateMillis?.let { millis ->
                                     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+                                    // ¡esta linea arregla el problema de la fecha, no la borren
+                                    formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
+
                                     viewModel.fechaCaducidad = formatter.format(Date(millis))
                                 }
                                 mostrarCalendario = false

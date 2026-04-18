@@ -169,9 +169,15 @@ fun AgregarIngredienteScreen(
                     confirmButton = {
                         TextButton(onClick = {
                             datePickerState.selectedDateMillis?.let { millis ->
-                                // Formatear los milisegundos a YYYY-MM-DD
                                 val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+                                // esta linea arregla el problema de la fecha, no la borrennnn
+                                formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
+
                                 fechaCaducidad = formatter.format(Date(millis))
+
+                                // Opcional: Limpia el error para que desaparezca el texto rojo de la pantalla
+                                if (uiState is IngredienteUiState.Error) viewModel.resetState()
                             }
                             mostrarCalendario = false
                         }) { Text("Aceptar") }
@@ -179,7 +185,7 @@ fun AgregarIngredienteScreen(
                     dismissButton = {
                         TextButton(onClick = { mostrarCalendario = false }) { Text("Cancelar") }
                     }
-                ) {
+                ){
                     DatePicker(state = datePickerState)
                 }
             }
