@@ -32,4 +32,19 @@ class InventarioRepository {
             Result.failure(e)
         }
     }
+
+    // se implemento esta funcion para descargar la lista de la despensa
+    suspend fun obtenerIngredientes(): Result<List<Ingrediente>> {
+        return try {
+            // "select()" trae todos los registros de la tabla
+            // "decodeList" los convierte automáticamente a nuestra clase Ingrediente
+            val lista = SupabaseClient.client.postgrest["ingredientes"]
+                .select()
+                .decodeList<Ingrediente>()
+
+            Result.success(lista)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
