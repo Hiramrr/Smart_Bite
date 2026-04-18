@@ -89,10 +89,17 @@ fun EditarIngredienteScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     OutlinedTextField(
                         value = viewModel.cantidad,
-                        onValueChange = { viewModel.cantidad = it },
+                        onValueChange = {
+                            viewModel.cantidad = it
+                            // Si había un error previo, lo limpiamos al empezar a escribir de nuevo
+                            if (uiState is IngredienteUiState.Error) viewModel.resetState()
+                        },
                         label = { Text("Cantidad *") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f), singleLine = true
+                        // Opcional: Pone el contorno en rojo si el error es de cantidad
+                        isError = uiState is IngredienteUiState.Error && (viewModel.cantidad.toFloatOrNull() ?: -1f) < 0,
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
 
                     ExposedDropdownMenuBox(

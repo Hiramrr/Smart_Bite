@@ -52,10 +52,22 @@ class EditarIngredienteViewModel : ViewModel() {
         }
 
         val cant = cantidad.toFloatOrNull()
-        if (cant == null) {
-            uiState = IngredienteUiState.Error("La cantidad debe ser un número válido.")
+
+        // Validar que sea un número válido y que NO sea negativo
+        if (cant == null || cant < 0) {
+            uiState = IngredienteUiState.Error("La cantidad debe ser un número válido mayor o igual a 0.")
             return
         }
+
+        // Validar formato de fecha (YYYY-MM-DD) si el usuario ingresó una
+        if (fechaCaducidad.isNotBlank()) {
+            val dateRegex = "^\\d{4}-\\d{2}-\\d{2}$".toRegex()
+            if (!fechaCaducidad.matches(dateRegex)) {
+                uiState = IngredienteUiState.Error("El formato de la fecha debe ser YYYY-MM-DD.")
+                return
+            }
+        }
+
 
         uiState = IngredienteUiState.Loading
 
@@ -69,7 +81,11 @@ class EditarIngredienteViewModel : ViewModel() {
             resultado.onSuccess {
                 uiState = IngredienteUiState.Success
             }.onFailure {
-                uiState = IngredienteUiState.Error("Error al actualizar: ${it.message}")
+                // Falla de conexión o base de datos.
+                // El estado cambia a Error, pero las variables (nombre, cantidad, etc.)
+                // NO se borran, manteniendo intactos los datos del ingrediente.
+                uiState = IngredienteUiState.Error("Error al guardar: Verifica tu conexión a internet o intenta más tarde.")
+
             }
         }
     }
