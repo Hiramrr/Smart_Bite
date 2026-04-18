@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
@@ -12,37 +13,79 @@ import kotlinx.coroutines.launch
 class DespensaViewModel : ViewModel() {
     private val repository = InventarioRepository()
 
-    // El estado inicial será "Cargando" mientras pedimos los datos a Supabase
     var uiState by mutableStateOf<DespensaUiState>(DespensaUiState.Loading)
         private set
 
+    // Lista de categorías para los filtros
+    var categorias by mutableStateOf<List<Categoria>>(emptyList())
+        private set
 
+    // Guardamos la lista original para no tener que descargarla cada vez que filtramos
+    private var todosLosIngredientes: List<Ingrediente> = emptyList()
+
+    // Estado de los filtros
+    var filtroSeleccionado by mutableStateOf<Categoria?>(null)
+        private set
+    var filtroPorCaducar by mutableStateOf(false)
+        private set
+
+    init {
+        // Al nacer el ViewModel, descargamos las categorías para los botones
+        viewModelScope.launch {
+            repository.obtenerCategorias().onSuccess { categorias = it }
+        }
+    }
 
     fun cargarIngredientes() {
         uiState = DespensaUiState.Loading
         viewModelScope.launch {
-            val resultado = repository.obtenerIngredientes()
-
-            resultado.onSuccess { lista ->
-                uiState = DespensaUiState.Success(lista)
+            repository.obtenerIngredientes().onSuccess { lista ->
+                todosLosIngredientes = lista
+                aplicarFiltros() // Mostramos la lista aplicando el filtro actual
             }.onFailure { error ->
                 uiState = DespensaUiState.Error("Error al cargar: ${error.message}")
             }
         }
     }
 
-    // Llama al repositorio para borrar y recarga la lista
     fun eliminarIngrediente(id: Int) {
         viewModelScope.launch {
             repository.eliminarIngrediente(id).onSuccess {
-
-                cargarIngredientes()
+                cargarIngredientes() // Recargamos si se eliminó con éxito
             }
         }
     }
+
+    // --- LÓGICA DE FILTROS ---
+
+    fun seleccionarFiltroCategoria(categoria: Categoria?) {
+        filtroSeleccionado = categoria
+        filtroPorCaducar = false // Apagamos el de caducar si elegimos una categoría
+        aplicarFiltros()
+    }
+
+    fun toggleFiltroPorCaducar() {
+        filtroPorCaducar = !filtroPorCaducar
+        if (filtroPorCaducar) {
+            filtroSeleccionado = null // Apagamos las categorías si elegimos por caducar
+        }
+        aplicarFiltros()
+    }
+
+    private fun aplicarFiltros() {
+        var listaFiltrada = todosLosIngredientes
+
+        if (filtroSeleccionado != null) {
+            // Filtramos solo los que pertenezcan a la categoría seleccionada
+            listaFiltrada = listaFiltrada.filter { it.categoriaId == filtroSeleccionado?.id }
+        } else if (filtroPorCaducar) {
+            // Lógica pendiente (por ahora mostrará todos, lo implementaremos después)
+        }
+
+        uiState = DespensaUiState.Success(listaFiltrada)
+    }
 }
 
-// Representa los estados de la pantalla de lista
 sealed class DespensaUiState {
     object Loading : DespensaUiState()
     data class Success(val ingredientes: List<Ingrediente>) : DespensaUiState()

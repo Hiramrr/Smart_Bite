@@ -17,67 +17,111 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.smart.comida.data.model.Ingrediente // <-- Asegúrate de que esta importación apunte a tu nueva carpeta 'model'
+import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items 
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DespensaScreen(
     viewModel: DespensaViewModel = viewModel(),
     onAgregarClick: () -> Unit,
-    onEditarClick: (Int) -> Unit // Recibirá el ID del ingrediente a editar
+    onEditarClick: (Int) -> Unit
 ) {
     val uiState = viewModel.uiState
+    val categorias = viewModel.categorias
 
     LaunchedEffect(Unit) {
         viewModel.cargarIngredientes()
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Mi Despensa") })
-        },
+        topBar = { TopAppBar(title = { Text("Mi Despensa") }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAgregarClick) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar")
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            when (uiState) {
-                is DespensaUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is DespensaUiState.Error -> {
-                    Text(
-                        text = uiState.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
+        // Usamos un Column para poner los filtros arriba y la cuadrícula abajo
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            // --- SECCIÓN DE FILTROS (LazyRow) ---
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Filtro "Todos"
+                item {
+                    FilterChip(
+                        selected = viewModel.filtroSeleccionado == null && !viewModel.filtroPorCaducar,
+                        onClick = { viewModel.seleccionarFiltroCategoria(null) },
+                        label = { Text("Todos") }
                     )
                 }
-                is DespensaUiState.Success -> {
-                    if (uiState.ingredientes.isEmpty()) {
-                        Text("No hay ingredientes en tu despensa.", modifier = Modifier.align(Alignment.Center))
-                    } else {
-                        // LA MAGIA DE LA CUADRÍCULA: 2 columnas
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.ingredientes) { ingrediente ->
-                                IngredienteCard(
-                                    ingrediente = ingrediente,
-                                    onEditarClick = {
-                                        if (ingrediente.id != null) onEditarClick(ingrediente.id)
-                                    },
-                                    onEliminarClick = {
-                                        if (ingrediente.id != null) viewModel.eliminarIngrediente(ingrediente.id)
-                                    }
-                                )
+                // Filtro "Por Caducar"
+                item {
+                    FilterChip(
+                        selected = viewModel.filtroPorCaducar,
+                        onClick = { viewModel.toggleFiltroPorCaducar() },
+                        label = { Text("Por Caducar") }
+                    )
+                }
+
+                // Filtros dinámicos desde Supabase (Lácteos, Carnes, etc.)
+                items(categorias) { categoria ->
+                    FilterChip(
+                        selected = viewModel.filtroSeleccionado?.id == categoria.id,
+                        onClick = { viewModel.seleccionarFiltroCategoria(categoria) },
+                        label = { Text(categoria.nombre) }
+                    )
+                }
+            }
+
+            // --- SECCIÓN DE LA CUADRÍCULA ---
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                when (uiState) {
+                    is DespensaUiState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    is DespensaUiState.Error -> {
+                        Text(
+                            text = uiState.message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                    is DespensaUiState.Success -> {
+                        if (uiState.ingredientes.isEmpty()) {
+                            Text("No hay ingredientes en esta categoría.", modifier = Modifier.align(Alignment.Center))
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(uiState.ingredientes) { ingrediente ->
+                                    IngredienteCard(
+                                        ingrediente = ingrediente,
+                                        onEditarClick = {
+                                            if (ingrediente.id != null) onEditarClick(ingrediente.id)
+                                        },
+                                        onEliminarClick = {
+                                            if (ingrediente.id != null) viewModel.eliminarIngrediente(ingrediente.id)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
