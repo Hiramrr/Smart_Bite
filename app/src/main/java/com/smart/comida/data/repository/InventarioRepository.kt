@@ -1,5 +1,6 @@
 package com.smart.comida.data.repository
 
+import com.smart.comida.data.Categoria
 import com.smart.comida.data.Ingrediente
 import com.smart.comida.data.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -45,6 +46,32 @@ class InventarioRepository {
             Result.success(lista)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    // NUEVA FUNCIÓN: Descargar categorías
+    suspend fun obtenerCategorias(): Result<List<Categoria>> {
+        return try {
+            val lista = SupabaseClient.client.postgrest["categorias"]
+                .select()
+                .decodeList<Categoria>()
+            Result.success(lista)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // NUEVA FUNCIÓN: Validar duplicados (FA-02)
+    suspend fun existeIngrediente(nombreIngrediente: String): Boolean {
+        return try {
+            val coincidencias = SupabaseClient.client.postgrest["ingredientes"]
+                // Buscamos si existe exactamente ese nombre
+                .select { filter { eq("nombre", nombreIngrediente) } }
+                .decodeList<Ingrediente>()
+
+            coincidencias.isNotEmpty() // Devuelve true si encontró alguno
+        } catch (e: Exception) {
+            false
         }
     }
 }

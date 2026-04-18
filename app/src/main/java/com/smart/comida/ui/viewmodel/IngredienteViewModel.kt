@@ -5,23 +5,34 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smart.comida.data.Categoria
 import com.smart.comida.data.repository.InventarioRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class IngredienteViewModel : ViewModel() {
     private val repository = InventarioRepository()
 
-    // Estado para manejar mensajes de error o éxito en la UI
     var uiState by mutableStateOf<IngredienteUiState>(IngredienteUiState.Idle)
         private set
+
+    // Estado para guardar las categorías descargadas
+    var categorias by mutableStateOf<List<Categoria>>(emptyList())
+        private set
+
+    fun cargarCategorias() {
+        viewModelScope.launch {
+            repository.obtenerCategorias().onSuccess { lista ->
+                categorias = lista
+            }
+        }
+    }
 
     fun guardarIngrediente(
         nombre: String,
         cantidadStr: String,
         unidad: String,
-        fechaCaducidad: String
+        fechaCaducidad: String,
+        categoriaId: Int? // Aceptamos el ID de la categoría
     ) {
         // --- FA-01: 'Campos vacíos' ---
         if (nombre.isBlank() || cantidadStr.isBlank() || unidad.isBlank()) {
@@ -38,19 +49,27 @@ class IngredienteViewModel : ViewModel() {
         uiState = IngredienteUiState.Loading
 
         viewModelScope.launch {
+            // --- FA-02: 'Ingrediente duplicado' ---
+            val yaExiste = repository.existeIngrediente(nombre)
+            if (yaExiste) {
+                uiState = IngredienteUiState.Error("El ingrediente '$nombre' ya está en tu despensa.")
+                return@launch // Detenemos la ejecución aquí
+            }
+
+            // Si llegamos hasta aquí, guardamos en Supabase
             val resultado = repository.agregarIngrediente(
                 nombre = nombre,
                 cantidad = cantidad,
                 unidad = unidad,
                 fechaCaducidad = fechaCaducidad.ifBlank { null },
-                categoriaId = null // De momento opcional
+                categoriaId = categoriaId
             )
 
             resultado.onSuccess {
                 uiState = IngredienteUiState.Success
             }.onFailure {
-                // --- Ex-01: 'Error al guardar los datos' ---
-                uiState = IngredienteUiState.Error("Error al conectar con Supabase: ${it.message}")
+                // --- Ex-01: 'Error al guardar' ---
+                uiState = IngredienteUiState.Error("Error al guardar: ${it.message}")
             }
         }
     }
@@ -60,7 +79,6 @@ class IngredienteViewModel : ViewModel() {
     }
 }
 
-// Representa los diferentes estados de la pantalla de agregar ingrediente
 sealed class IngredienteUiState {
     object Idle : IngredienteUiState()
     object Loading : IngredienteUiState()

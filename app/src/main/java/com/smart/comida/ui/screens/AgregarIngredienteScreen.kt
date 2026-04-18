@@ -1,5 +1,6 @@
 package com.smart.comida.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -9,39 +10,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.smart.comida.data.Categoria
 import com.smart.comida.ui.viewmodel.IngredienteUiState
 import com.smart.comida.ui.viewmodel.IngredienteViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgregarIngredienteScreen(
-    // Inyectamos el ViewModel
     viewModel: IngredienteViewModel = viewModel(),
-    // Función para navegar cuando se guarde con éxito (opcional por ahora)
     onGuardadoExitoso: () -> Unit = {}
 ) {
-    // Variables de estado para los campos de texto
     var nombre by remember { mutableStateOf("") }
     var cantidad by remember { mutableStateOf("") }
     var unidad by remember { mutableStateOf("") }
-    var fechaCaducidad by remember { mutableStateOf("") } // Formato YYYY-MM-DD
+    var fechaCaducidad by remember { mutableStateOf("") }
 
-    // Estado del Dropdown de Unidades
-    var expandirDropdown by remember { mutableStateOf(false) }
+    // Categorías
+    var categoriaSeleccionada by remember { mutableStateOf<Categoria?>(null) }
+    var expandirCategoria by remember { mutableStateOf(false) }
+
+    // Calendario
+    var mostrarCalendario by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    var expandirDropdownUnidad by remember { mutableStateOf(false) }
     val opcionesUnidad = listOf("kg", "litros", "piezas", "gramos")
 
-    // Observamos el estado del ViewModel
     val uiState = viewModel.uiState
+
+    // Cargar categorías al abrir la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.cargarCategorias()
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Agregar Ingrediente") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
+            TopAppBar(title = { Text("Agregar Ingrediente") })
         }
     ) { paddingValues ->
         Column(
@@ -52,7 +59,7 @@ fun AgregarIngredienteScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Campo: Nombre
+            // Nombre
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
@@ -61,12 +68,42 @@ fun AgregarIngredienteScreen(
                 singleLine = true
             )
 
-            // Fila para Cantidad y Unidad
+            // Categoría
+            ExposedDropdownMenuBox(
+                expanded = expandirCategoria,
+                onExpandedChange = { expandirCategoria = !expandirCategoria },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = categoriaSeleccionada?.nombre ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría (Opcional)") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirCategoria) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expandirCategoria,
+                    onDismissRequest = { expandirCategoria = false }
+                ) {
+                    viewModel.categorias.forEach { categoria ->
+                        DropdownMenuItem(
+                            text = { Text(categoria.nombre) },
+                            onClick = {
+                                categoriaSeleccionada = categoria
+                                expandirCategoria = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Fila Cantidad y Unidad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Campo: Cantidad
                 OutlinedTextField(
                     value = cantidad,
                     onValueChange = { cantidad = it },
@@ -76,10 +113,9 @@ fun AgregarIngredienteScreen(
                     singleLine = true
                 )
 
-                // Selector: Unidad
                 ExposedDropdownMenuBox(
-                    expanded = expandirDropdown,
-                    onExpandedChange = { expandirDropdown = !expandirDropdown },
+                    expanded = expandirDropdownUnidad,
+                    onExpandedChange = { expandirDropdownUnidad = !expandirDropdownUnidad },
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
@@ -87,20 +123,20 @@ fun AgregarIngredienteScreen(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Unidad *") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirDropdown) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirDropdownUnidad) },
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         modifier = Modifier.menuAnchor()
                     )
                     ExposedDropdownMenu(
-                        expanded = expandirDropdown,
-                        onDismissRequest = { expandirDropdown = false }
+                        expanded = expandirDropdownUnidad,
+                        onDismissRequest = { expandirDropdownUnidad = false }
                     ) {
                         opcionesUnidad.forEach { seleccion ->
                             DropdownMenuItem(
                                 text = { Text(seleccion) },
                                 onClick = {
                                     unidad = seleccion
-                                    expandirDropdown = false
+                                    expandirDropdownUnidad = false
                                 }
                             )
                         }
@@ -108,59 +144,73 @@ fun AgregarIngredienteScreen(
                 }
             }
 
-            // Campo: Fecha de Caducidad (Por ahora un campo de texto simple)
+            // Fecha de Caducidad con Interacción
             OutlinedTextField(
                 value = fechaCaducidad,
-                onValueChange = { fechaCaducidad = it },
-                label = { Text("Fecha de Caducidad (YYYY-MM-DD)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Ej: 2024-12-31") }
+                onValueChange = { },
+                readOnly = true, // Evita que se escriba texto
+                label = { Text("Fecha de Caducidad") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Abre el calendario al tocar el campo
+                    .clickable { mostrarCalendario = true },
+                enabled = false, // Lo desactivamos visualmente como input
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
+
+            // Cuadro de Diálogo del Calendario
+            if (mostrarCalendario) {
+                DatePickerDialog(
+                    onDismissRequest = { mostrarCalendario = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let { millis ->
+                                // Formatear los milisegundos a YYYY-MM-DD
+                                val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                fechaCaducidad = formatter.format(Date(millis))
+                            }
+                            mostrarCalendario = false
+                        }) { Text("Aceptar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { mostrarCalendario = false }) { Text("Cancelar") }
+                    }
+                ) {
+                    DatePicker(state = datePickerState)
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Manejo de Estados de la UI (Carga, Éxito, Error)
             when (uiState) {
-                is IngredienteUiState.Loading -> {
-                    CircularProgressIndicator()
-                }
-                is IngredienteUiState.Error -> {
-                    Text(
-                        text = uiState.message,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                is IngredienteUiState.Loading -> CircularProgressIndicator()
+                is IngredienteUiState.Error -> Text(text = uiState.message, color = MaterialTheme.colorScheme.error)
                 is IngredienteUiState.Success -> {
-                    Text(
-                        text = "¡Ingrediente guardado con éxito!",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    // Disparamos la acción de éxito (como limpiar campos o navegar)
+                    Text(text = "¡Ingrediente guardado!", color = MaterialTheme.colorScheme.primary)
                     LaunchedEffect(Unit) {
                         onGuardadoExitoso()
-                        viewModel.resetState() // Volvemos al estado inicial
-                        nombre = ""
-                        cantidad = ""
-                        unidad = ""
-                        fechaCaducidad = ""
+                        viewModel.resetState()
                     }
                 }
-                is IngredienteUiState.Idle -> { /* Sin acción */ }
+                is IngredienteUiState.Idle -> { }
             }
 
-            // Botón Guardar
             Button(
                 onClick = {
                     viewModel.guardarIngrediente(
                         nombre = nombre,
                         cantidadStr = cantidad,
                         unidad = unidad,
-                        fechaCaducidad = fechaCaducidad
+                        fechaCaducidad = fechaCaducidad,
+                        categoriaId = categoriaSeleccionada?.id // Enviamos el ID de la categoría
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState !is IngredienteUiState.Loading // Deshabilitar mientras carga
+                enabled = uiState !is IngredienteUiState.Loading
             ) {
                 Text("Guardar Ingrediente")
             }
