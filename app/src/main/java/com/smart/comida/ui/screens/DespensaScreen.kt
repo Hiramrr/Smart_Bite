@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.smart.comida.data.Ingrediente
+import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 

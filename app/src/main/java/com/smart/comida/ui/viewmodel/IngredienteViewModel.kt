@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smart.comida.data.Categoria
+import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
 

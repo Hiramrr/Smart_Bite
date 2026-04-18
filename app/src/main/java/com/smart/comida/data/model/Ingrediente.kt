@@ -1,4 +1,4 @@
-package com.smart.comida.data
+package com.smart.comida.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

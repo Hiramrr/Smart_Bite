@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smart.comida.data.Ingrediente
+import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
 
@@ -16,7 +16,7 @@ class DespensaViewModel : ViewModel() {
     var uiState by mutableStateOf<DespensaUiState>(DespensaUiState.Loading)
         private set
 
-    
+
 
     fun cargarIngredientes() {
         uiState = DespensaUiState.Loading

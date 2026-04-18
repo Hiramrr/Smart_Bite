@@ -1,4 +1,4 @@
-package com.smart.comida.data
+package com.smart.comida.data.network
 
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
@@ -10,7 +10,7 @@ object SupabaseClient {
         supabaseUrl = "https://xjhhrwaopisbemoebqzz.supabase.co",
         supabaseKey = "sb_publishable_hQ8TECVf8BYV3ixteCou4Q_zFwjKYx7"
     ) {
-        install(Postgrest)
+        install(Postgrest.Companion)
 
         defaultSerializer = KotlinXSerializer(Json { ignoreUnknownKeys = true })
     }

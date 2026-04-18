@@ -1,8 +1,8 @@
 package com.smart.comida.data.repository
 
-import com.smart.comida.data.Categoria
-import com.smart.comida.data.Ingrediente
-import com.smart.comida.data.SupabaseClient
+import com.smart.comida.data.model.Categoria
+import com.smart.comida.data.model.Ingrediente
+import com.smart.comida.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 
 class InventarioRepository {

@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.smart.comida.data.Categoria
+import com.smart.comida.data.model.Categoria
 import com.smart.comida.ui.viewmodel.IngredienteUiState
 import com.smart.comida.ui.viewmodel.IngredienteViewModel
 import java.text.SimpleDateFormat
