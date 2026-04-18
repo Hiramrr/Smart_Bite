@@ -30,6 +30,16 @@ class DespensaViewModel : ViewModel() {
             }
         }
     }
+
+    // Llama al repositorio para borrar y recarga la lista
+    fun eliminarIngrediente(id: Int) {
+        viewModelScope.launch {
+            repository.eliminarIngrediente(id).onSuccess {
+
+                cargarIngredientes()
+            }
+        }
+    }
 }
 
 // Representa los estados de la pantalla de lista

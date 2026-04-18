@@ -74,4 +74,15 @@ class InventarioRepository {
             false
         }
     }
+
+    // NUEVA FUNCIÓN: Eliminar ingrediente
+    suspend fun eliminarIngrediente(id: Int): Result<Unit> {
+        return try {
+            SupabaseClient.client.postgrest["ingredientes"]
+                .delete { filter { eq("id", id) } }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

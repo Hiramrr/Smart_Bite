@@ -18,7 +18,12 @@ fun AppNavigation() {
         // Ruta 1: Lista de Despensa
         composable("despensa") {
             DespensaScreen(
-                onAgregarClick = { navController.navigate("agregar") }
+                onAgregarClick = { navController.navigate("agregar") },
+                onEditarClick = { idIngrediente ->
+                    // Imprime en consola para que veas que funciona.
+                    // En el próximo paso, haremos que navegue a la pantalla de edición.
+                    println("Se hizo clic para editar el ingrediente con ID: $idIngrediente")
+                }
             )
         }
 
