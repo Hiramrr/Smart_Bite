@@ -35,7 +35,8 @@ class IngredienteViewModel : ViewModel() {
         cantidadStr: String,
         unidad: String,
         fechaCaducidad: String,
-        categoriaId: Int? // Aceptamos el ID de la categoría
+        categoriaId: Int?,
+        imagenBytes: ByteArray? = null // --- NUEVO PARÁMETRO PARA LA FOTO ---
     ) {
         // --- FA-01: 'Campos vacíos' ---
         if (nombre.isBlank() || cantidadStr.isBlank() || unidad.isBlank()) {
@@ -49,18 +50,14 @@ class IngredienteViewModel : ViewModel() {
             return
         }
 
-        // --- NUEVA VALIDACIÓN: Fecha de caducidad menor a hoy ---
+        // --- VALIDACIÓN DE FECHA ---
         if (fechaCaducidad.isNotBlank()) {
             try {
                 val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val fechaSeleccionada = sdf.parse(fechaCaducidad)
-
-                // Formateamos y volvemos a parsear la fecha de hoy para asegurarnos
-                // de que ambas fechas estén a las 00:00:00 y la comparación sea justa
                 val hoyStr = sdf.format(Date())
                 val fechaHoy = sdf.parse(hoyStr)
 
-                // Si la fecha seleccionada es ANTERIOR a hoy, bloqueamos el guardado
                 if (fechaSeleccionada != null && fechaHoy != null && fechaSeleccionada.before(fechaHoy)) {
                     uiState = IngredienteUiState.Error("La fecha de caducidad debe ser mayor o igual a la de hoy.")
                     return
@@ -78,22 +75,39 @@ class IngredienteViewModel : ViewModel() {
             val yaExiste = repository.existeIngrediente(nombre)
             if (yaExiste) {
                 uiState = IngredienteUiState.Error("El ingrediente '$nombre' ya está en tu despensa.")
-                return@launch // Detenemos la ejecución aquí
+                return@launch
             }
 
-            // Si llegamos hasta aquí, guardamos en Supabase
+            // --- NUEVA LÓGICA: SUBIR IMAGEN PRIMERO ---
+            var urlImagenSubida: String? = null
+
+            if (imagenBytes != null) {
+                // Le damos un nombre único basado en el tiempo exacto
+                val nombreArchivo = "foto_${System.currentTimeMillis()}"
+                val resultadoImagen = repository.subirImagen(imagenBytes, nombreArchivo)
+
+                resultadoImagen.onSuccess { url ->
+                    urlImagenSubida = url // Guardamos el link mágico de Supabase
+                }.onFailure {
+                    uiState = IngredienteUiState.Error("Error al subir la imagen: ${it.message}")
+                    return@launch // Si falla la foto, detenemos el guardado
+                }
+            }
+            // ------------------------------------------
+
+            // Guardamos en Supabase incluyendo la URL de la imagen (si hay una)
             val resultado = repository.agregarIngrediente(
                 nombre = nombre,
                 cantidad = cantidad,
                 unidad = unidad,
                 fechaCaducidad = fechaCaducidad.ifBlank { null },
-                categoriaId = categoriaId
+                categoriaId = categoriaId,
+                imagenUrl = urlImagenSubida // --- PASAMOS LA URL ---
             )
 
             resultado.onSuccess {
                 uiState = IngredienteUiState.Success
             }.onFailure {
-                // --- Ex-01: 'Error al guardar' ---
                 uiState = IngredienteUiState.Error("Error al guardar: ${it.message}")
             }
         }

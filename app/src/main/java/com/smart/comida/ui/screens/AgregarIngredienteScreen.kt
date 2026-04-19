@@ -16,6 +16,18 @@ import com.smart.comida.ui.viewmodel.IngredienteViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +53,16 @@ fun AgregarIngredienteScreen(
 
     val uiState = viewModel.uiState
 
+    // --- VARIABLES PARA LA FOTO ---
+    val context = LocalContext.current
+    var imagenUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Lanzador para abrir la galería de Android
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> imagenUri = uri }
+    )
+
     // Cargar categorías al abrir la pantalla
     LaunchedEffect(Unit) {
         viewModel.cargarCategorias()
@@ -58,7 +80,39 @@ fun AgregarIngredienteScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        ) {// --- CAJA DE FOTO ---
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable {
+                        // Al hacer clic, abre la galería solo para imágenes
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imagenUri != null) {
+                    // Si el usuario ya eligió una foto, la dibujamos con Coil
+                    AsyncImage(
+                        model = imagenUri,
+                        contentDescription = "Foto seleccionada",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop // Recorta la imagen para que llene el cuadrado
+                    )
+                } else {
+                    // Si no hay foto, mostramos un ícono de camarita
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar foto",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
+
             // Nombre
             OutlinedTextField(
                 value = nombre,
@@ -207,12 +261,18 @@ fun AgregarIngredienteScreen(
 
             Button(
                 onClick = {
+                    // Convertimos la URI local a ByteArray usando el Contexto de Android
+                    val bytesDeImagen = imagenUri?.let { uri ->
+                        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    }
+
                     viewModel.guardarIngrediente(
                         nombre = nombre,
                         cantidadStr = cantidad,
                         unidad = unidad,
                         fechaCaducidad = fechaCaducidad,
-                        categoriaId = categoriaSeleccionada?.id // Enviamos el ID de la categoría
+                        categoriaId = categoriaSeleccionada?.id,
+                        imagenBytes = bytesDeImagen // --- PASAMOS LA FOTO ---
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),

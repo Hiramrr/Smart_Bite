@@ -4,6 +4,7 @@ import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 
 class InventarioRepository {
 
@@ -12,7 +13,8 @@ class InventarioRepository {
         cantidad: Float,
         unidad: String?,
         fechaCaducidad: String?,
-        categoriaId: Int?
+        categoriaId: Int?,
+        imagenUrl: String? = null
     ): Result<Unit> {
         return try {
             val nuevoIngrediente = Ingrediente(
@@ -20,7 +22,8 @@ class InventarioRepository {
                 cantidad = cantidad,
                 unidad = unidad,
                 fechaCaducidad = fechaCaducidad,
-                categoriaId = categoriaId
+                categoriaId = categoriaId,
+                imagenUrl = imagenUrl
             )
 
             // Inserta el registro en la tabla "ingredientes"
@@ -101,19 +104,42 @@ class InventarioRepository {
     // NUEVA FUNCIÓN: Actualizar los datos de un ingrediente
     suspend fun actualizarIngrediente(
         id: Int, nombre: String, cantidad: Float,
-        unidad: String?, fechaCaducidad: String?, categoriaId: Int?
+        unidad: String?, fechaCaducidad: String?, categoriaId: Int?,
+        imagenUrl: String? = null // --- NUEVO PARÁMETRO ---
     ): Result<Unit> {
         return try {
             val ingredienteActualizado = Ingrediente(
                 id = id, // Es vital pasar el ID para que Supabase sepa cuál editar
                 nombre = nombre, cantidad = cantidad, unidad = unidad,
-                fechaCaducidad = fechaCaducidad, categoriaId = categoriaId
+                fechaCaducidad = fechaCaducidad, categoriaId = categoriaId,
+                imagenUrl = imagenUrl // --- NUEVO ---
             )
 
             SupabaseClient.client.postgrest["ingredientes"]
                 .update(ingredienteActualizado) { filter { eq("id", id) } }
 
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // NUEVA FUNCIÓN: Subir imagen a Supabase Storage
+    suspend fun subirImagen(byteArray: ByteArray, nombreArchivo: String): Result<String> {
+        return try {
+            // Nos conectamos a la "caja" que creaste
+            val bucket = SupabaseClient.client.storage["ingredientes_imagenes"]
+
+            // Creamos un nombre único para el archivo (ej. tomate_168439.jpg)
+            val rutaArchivo = "$nombreArchivo.jpg"
+
+            // Subimos la imagen (upsert = true permite sobreescribir si ya existe uno con ese nombre)
+            bucket.upload(rutaArchivo, byteArray, upsert = true)
+
+            // Pedimos la URL pública de la imagen recién subida
+            val urlPublica = bucket.publicUrl(rutaArchivo)
+
+            Result.success(urlPublica) // Devolvemos el link
         } catch (e: Exception) {
             Result.failure(e)
         }

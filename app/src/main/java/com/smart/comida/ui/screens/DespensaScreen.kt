@@ -22,7 +22,10 @@ import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items 
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,7 +134,7 @@ fun DespensaScreen(
     }
 }
 
-// EL DISEÑO DE TU TARJETA
+// EL DISEÑO DE TU TARJETA (VERSIÓN MEJORADA)
 @Composable
 fun IngredienteCard(
     ingrediente: Ingrediente,
@@ -141,59 +144,93 @@ fun IngredienteCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.85f), // Proporción ligeramente más alta que ancha, como tu imagen
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            .aspectRatio(0.7f), // Hacemos la tarjeta un poco más alta para dar respiro
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Sombra más definida
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
+        // Quitamos el SpaceBetween de aquí y dejamos que el weight(1f) haga el trabajo
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween // Separa iconos, texto y píldora
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
         ) {
-            // Iconos superiores
+            // --- 1. SECCIÓN SUPERIOR: Fila de Acciones ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 IconButton(onClick = onEliminarClick, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error // Pone el bote de basura en rojo
+                    )
                 }
                 IconButton(onClick = onEditarClick, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        tint = MaterialTheme.colorScheme.primary // Pone el lápiz en color primario
+                    )
                 }
             }
 
-            // Textos centrales
+            // --- 2. SECCIÓN CENTRAL: Foto y Detalles ---
+            // El weight(1f) ocupa todo el centro y empuja la píldora hacia abajo
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center, // Centra el contenido perfecto
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
+                if (!ingrediente.imagenUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ingrediente.imagenUrl,
+                        contentDescription = "Foto de ${ingrediente.nombre}",
+                        modifier = Modifier
+                            .size(80.dp) // Hacemos la foto un pelín más grande
+                            .clip(RoundedCornerShape(16.dp)), // Bordes más suaves
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 Text(
                     text = ingrediente.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, // Letra en Negritas
+                    textAlign = TextAlign.Center,
+                    maxLines = 1, // Evita que un nombre larguísimo rompa la tarjeta
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
                     text = "${ingrediente.cantidad} ${ingrediente.unidad ?: ""}",
                     style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            // Píldora inferior de Caducidad
+            // --- 3. SECCIÓN INFERIOR: Píldora de Caducidad ---
             Surface(
-                shape = RoundedCornerShape(50), // Bordes súper redondeados
+                shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp) // Separador visual del contenido central
             ) {
                 Text(
                     text = "Caduca: ${ingrediente.fechaCaducidad ?: "S/F"}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                    modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
+                    maxLines = 1
                 )
             }
         }

@@ -10,5 +10,6 @@ data class Ingrediente(
     @SerialName("cantidad") val cantidad: Float,
     @SerialName("unidad") val unidad: String?,
     @SerialName("fecha_caducidad") val fechaCaducidad: String?, // Formato YYYY-MM-DD
-    @SerialName("categoria_id") val categoriaId: Int? = null
+    @SerialName("categoria_id") val categoriaId: Int? = null,
+    @SerialName("imagen_url") val imagenUrl: String? = null
 )
