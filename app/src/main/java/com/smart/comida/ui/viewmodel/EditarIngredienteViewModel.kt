@@ -24,6 +24,7 @@ class EditarIngredienteViewModel : ViewModel() {
     var unidad by mutableStateOf("")
     var fechaCaducidad by mutableStateOf("")
     var categoriaSeleccionada by mutableStateOf<Categoria?>(null)
+    var imagenUrl by mutableStateOf<String?>(null) // Mantiene la URL de la foto actual
 
     // Cargar datos al entrar a la pantalla
     fun cargarDatos(id: Int) {
@@ -38,6 +39,7 @@ class EditarIngredienteViewModel : ViewModel() {
                 fechaCaducidad = ing.fechaCaducidad ?: ""
                 categoriaSeleccionada = categorias.find { it.id == ing.categoriaId }
                 uiState = IngredienteUiState.Idle
+                imagenUrl = ing.imagenUrl // --- CARGAMOS LA IMAGEN VIEJA ---
             }.onFailure {
                 uiState = IngredienteUiState.Error("Error al cargar ingrediente")
             }
@@ -45,21 +47,18 @@ class EditarIngredienteViewModel : ViewModel() {
     }
 
     // Enviar cambios
-    fun guardarCambios(id: Int) {
+    fun guardarCambios(id: Int, imagenBytes: ByteArray? = null) { // Acepta la foto nueva
         if (nombre.isBlank() || cantidad.isBlank() || unidad.isBlank()) {
             uiState = IngredienteUiState.Error("Completa los campos obligatorios.")
             return
         }
 
         val cant = cantidad.toFloatOrNull()
-
-        // Validar que sea un número válido y que NO sea negativo
         if (cant == null || cant < 0) {
             uiState = IngredienteUiState.Error("La cantidad debe ser un número válido mayor o igual a 0.")
             return
         }
 
-        // Validar formato de fecha (YYYY-MM-DD) si el usuario ingresó una
         if (fechaCaducidad.isNotBlank()) {
             val dateRegex = "^\\d{4}-\\d{2}-\\d{2}$".toRegex()
             if (!fechaCaducidad.matches(dateRegex)) {
@@ -68,24 +67,42 @@ class EditarIngredienteViewModel : ViewModel() {
             }
         }
 
-
         uiState = IngredienteUiState.Loading
 
         viewModelScope.launch {
+            var urlFinalParaGuardar = imagenUrl // Por defecto, conservamos la foto vieja
+
+            // --- LÓGICA DE ACTUALIZACIÓN DE FOTO ---
+            if (imagenBytes != null) {
+                // 1. Subimos la nueva foto
+                val nombreArchivo = "foto_${System.currentTimeMillis()}"
+                val resultadoImagen = repository.subirImagen(imagenBytes, nombreArchivo)
+
+                resultadoImagen.onSuccess { nuevaUrl ->
+                    // 2. Si se subió bien, BORRAMOS la vieja (si existía)
+                    if (!imagenUrl.isNullOrEmpty()) {
+                        repository.eliminarImagen(imagenUrl!!)
+                    }
+                    // 3. Asignamos la nueva URL para guardarla en la base de datos
+                    urlFinalParaGuardar = nuevaUrl
+                }.onFailure {
+                    uiState = IngredienteUiState.Error("Error al subir la nueva imagen: ${it.message}")
+                    return@launch
+                }
+            }
+            // ----------------------------------------
+
             val resultado = repository.actualizarIngrediente(
                 id = id, nombre = nombre, cantidad = cant, unidad = unidad,
                 fechaCaducidad = fechaCaducidad.ifBlank { null },
-                categoriaId = categoriaSeleccionada?.id
+                categoriaId = categoriaSeleccionada?.id,
+                imagenUrl = urlFinalParaGuardar // Pasamos la URL final
             )
 
             resultado.onSuccess {
                 uiState = IngredienteUiState.Success
             }.onFailure {
-                // Falla de conexión o base de datos.
-                // El estado cambia a Error, pero las variables (nombre, cantidad, etc.)
-                // NO se borran, manteniendo intactos los datos del ingrediente.
                 uiState = IngredienteUiState.Error("Error al guardar: Verifica tu conexión a internet o intenta más tarde.")
-
             }
         }
     }

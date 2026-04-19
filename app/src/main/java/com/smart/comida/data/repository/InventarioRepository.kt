@@ -144,4 +144,22 @@ class InventarioRepository {
             Result.failure(e)
         }
     }
+
+    // NUEVA FUNCIÓN: Eliminar imagen vieja para liberar espacio
+    suspend fun eliminarImagen(urlPublica: String) {
+        try {
+            // Extraemos el nombre del archivo de la URL
+            // Ejemplo: si la URL termina en /foto_1234.jpg, esto extrae "foto_1234.jpg"
+            val nombreArchivo = urlPublica.substringAfterLast("/")
+
+            if (nombreArchivo.isNotBlank()) {
+                val bucket = SupabaseClient.client.storage["ingredientes_imagenes"]
+                bucket.delete(nombreArchivo) // Le decimos a la nube que lo borre
+            }
+        } catch (e: Exception) {
+            // Si falla el borrado, lo atrapamos aquí para que la app no se trabe
+            // y permita seguir guardando los datos del ingrediente.
+            e.printStackTrace()
+        }
+    }
 }

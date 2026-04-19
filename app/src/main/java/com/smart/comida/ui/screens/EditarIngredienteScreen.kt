@@ -15,6 +15,18 @@ import com.smart.comida.ui.viewmodel.IngredienteUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +40,14 @@ fun EditarIngredienteScreen(
     val datePickerState = rememberDatePickerState()
     var expandirDropdownUnidad by remember { mutableStateOf(false) }
     val opcionesUnidad = listOf("kg", "litros", "piezas", "gramos")
+
+    val context = LocalContext.current
+    var imagenUri by remember { mutableStateOf<Uri?>(null) } // La NUEVA foto seleccionada
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> imagenUri = uri }
+    )
 
     val uiState = viewModel.uiState
 
@@ -50,6 +70,38 @@ fun EditarIngredienteScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imagenUri != null) {
+                        // Si seleccionó una NUEVA foto, se muestra esta temporalmente
+                        AsyncImage(
+                            model = imagenUri, contentDescription = "Nueva Foto",
+                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+                        )
+                    } else if (!viewModel.imagenUrl.isNullOrEmpty()) {
+                        // Si no ha tocado nada, mostramos la foto VIEJA que ya está en la nube
+                        AsyncImage(
+                            model = viewModel.imagenUrl, contentDescription = "Foto Actual",
+                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Si de plano no tiene foto nunca
+                        Icon(
+                            imageVector = Icons.Default.Add, contentDescription = "Agregar foto",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
                 // Fíjate cómo ahora leemos y escribimos directamente en viewModel.nombre
                 OutlinedTextField(
                     value = viewModel.nombre,
@@ -172,7 +224,13 @@ fun EditarIngredienteScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.guardarCambios(ingredienteId) },
+                    onClick = {
+                        // Extraemos los bytes de la foto NUEVA (si es que seleccionó una)
+                        val bytesDeImagen = imagenUri?.let { uri ->
+                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        }
+                        viewModel.guardarCambios(id = ingredienteId, imagenBytes = bytesDeImagen)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = uiState !is IngredienteUiState.Loading
                 ) {
