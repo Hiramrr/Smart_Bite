@@ -48,10 +48,23 @@ class DespensaViewModel : ViewModel() {
         }
     }
 
-    fun eliminarIngrediente(id: Int) {
+    // Asegúrate de pedir la imagenUrl como parámetro
+    fun eliminarIngrediente(id: Int, imagenUrl: String?) {
         viewModelScope.launch {
-            repository.eliminarIngrediente(id).onSuccess {
-                cargarIngredientes() // Recargamos si se eliminó con éxito
+            // --- NUEVO: BORRAR LA IMAGEN FÍSICA PRIMERO ---
+            if (!imagenUrl.isNullOrEmpty()) {
+                repository.eliminarImagen(imagenUrl)
+            }
+            // ----------------------------------------------
+
+            // Luego, borramos el registro de la base de datos
+            val resultado = repository.eliminarIngrediente(id)
+
+            resultado.onSuccess {
+                // Volvemos a descargar la lista para que la pantalla se actualice
+                cargarIngredientes()
+            }.onFailure {
+                uiState = DespensaUiState.Error("Error al eliminar: ${it.message}")
             }
         }
     }

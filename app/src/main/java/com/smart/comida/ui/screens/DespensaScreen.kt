@@ -43,9 +43,14 @@ fun DespensaScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Mi Despensa") }) },
+        topBar = { CenterAlignedTopAppBar(title = { Text("Mi Despensa") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAgregarClick) {
+            FloatingActionButton(
+                onClick = onAgregarClick,
+                containerColor = MaterialTheme.colorScheme.primary, // Se pintará Turquesa
+                contentColor = MaterialTheme.colorScheme.onPrimary, // El ícono de "+" será blanco
+                shape = RoundedCornerShape(16.dp) // Un cuadrado con bordes suaves es más moderno que un círculo perfecto
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar")
             }
         }
@@ -121,7 +126,13 @@ fun DespensaScreen(
                                             if (ingrediente.id != null) onEditarClick(ingrediente.id)
                                         },
                                         onEliminarClick = {
-                                            if (ingrediente.id != null) viewModel.eliminarIngrediente(ingrediente.id)
+                                            // --- NUEVO: PASAMOS EL ID Y LA URL DE LA IMAGEN ---
+                                            if (ingrediente.id != null) {
+                                                viewModel.eliminarIngrediente(
+                                                    id = ingrediente.id,
+                                                    imagenUrl = ingrediente.imagenUrl
+                                                )
+                                            }
                                         }
                                     )
                                 }
