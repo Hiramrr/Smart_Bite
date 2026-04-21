@@ -83,18 +83,20 @@ fun DetalleIngredienteScreen(
     }
 
     Scaffold(
-        containerColor = DetailBackground
+        containerColor = DetailBackground,
+        contentWindowInsets = WindowInsets(0.dp) // Permite dibujar detrás de las barras del sistema
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
-                .padding(padding)
+                .padding(bottom = padding.calculateBottomPadding()) // Solo respetamos el padding inferior de navegación
                 .fillMaxSize()
         ) {
-            // Top App Bar + Image
+            // Top Image Background (ocupa la mitad superior)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.45f)
+                    .fillMaxHeight(0.5f) // Toma el 50% de la altura total
+                    .align(Alignment.TopCenter)
             ) {
                 if (ingrediente != null && !ingrediente.imagenUrl.isNullOrEmpty()) {
                     AsyncImage(
@@ -111,10 +113,10 @@ fun DetalleIngredienteScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp)
+                        .height(140.dp) // Un poco más alto para cubrir el status bar
                         .background(
                             brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                colors = listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent)
+                                colors = listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
                             )
                         )
                 )
@@ -122,7 +124,8 @@ fun DetalleIngredienteScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                        .statusBarsPadding() // Mueve los iconos debajo de la barra de estado
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
@@ -145,19 +148,19 @@ fun DetalleIngredienteScreen(
                 }
             }
 
-            // Bottom Info Card
+            // Bottom Info Card (ocupa el resto más un solapamiento)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.55f)
-                    .offset(y = (-24).dp), // Solapa un poco con la imagen
+                    .fillMaxHeight(0.55f) // Toma el 55% para crear ese solapamiento sobre la imagen (50% + 5% extra arriba)
+                    .align(Alignment.BottomCenter),
                 color = WhiteCardBackground,
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
             ) {
                 LazyColumn(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 40.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
