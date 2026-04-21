@@ -22,10 +22,14 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +37,7 @@ import coil.compose.AsyncImage
 fun EditarIngredienteScreen(
     ingredienteId: Int, // Recibimos el ID a editar
     viewModel: EditarIngredienteViewModel = viewModel(),
+    onVolver: () -> Unit = {},
     onGuardadoExitoso: () -> Unit
 ) {
     var expandirCategoria by remember { mutableStateOf(false) }
@@ -56,25 +61,68 @@ fun EditarIngredienteScreen(
         viewModel.cargarDatos(ingredienteId)
     }
 
+    val formColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = LightYellow,
+        unfocusedBorderColor = Color(0xFF5A5A5C),
+        focusedContainerColor = DarkCardBackground,
+        unfocusedContainerColor = DarkCardBackground,
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedLabelColor = LightYellow,
+        unfocusedLabelColor = Color(0xFFB3B3B3),
+        cursorColor = LightYellow,
+        disabledContainerColor = DarkCardBackground,
+        disabledTextColor = Color.White,
+        disabledBorderColor = Color(0xFF5A5A5C),
+        disabledLabelColor = Color(0xFFB3B3B3)
+    )
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Editar Ingrediente") }) }
+        containerColor = DarkBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text("Editar ingrediente", color = Color.White, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBackground,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
     ) { paddingValues ->
         if (uiState is IngredienteUiState.Loading && viewModel.nombre.isEmpty()) {
-            // Si está cargando al inicio, mostramos un círculo en el centro
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = LightYellow)
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.Start
             ) {
+                Text(
+                    text = "Actualiza la información del ingrediente",
+                    color = Color(0xFFB3B3B3),
+                    fontSize = 14.sp
+                )
+
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .size(128.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(DarkCardBackground)
                         .clickable {
                             photoPickerLauncher.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -83,32 +131,31 @@ fun EditarIngredienteScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (imagenUri != null) {
-                        // Si seleccionó una NUEVA foto, se muestra esta temporalmente
                         AsyncImage(
                             model = imagenUri, contentDescription = "Nueva Foto",
                             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
                         )
                     } else if (!viewModel.imagenUrl.isNullOrEmpty()) {
-                        // Si no ha tocado nada, mostramos la foto VIEJA que ya está en la nube
                         AsyncImage(
                             model = viewModel.imagenUrl, contentDescription = "Foto Actual",
                             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Si de plano no tiene foto nunca
                         Icon(
                             imageVector = Icons.Default.Add, contentDescription = "Agregar foto",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(36.dp)
+                            tint = Color(0xFFB3B3B3), modifier = Modifier.size(36.dp)
                         )
                     }
                 }
-                // Fíjate cómo ahora leemos y escribimos directamente en viewModel.nombre
+
                 OutlinedTextField(
                     value = viewModel.nombre,
                     onValueChange = { viewModel.nombre = it },
                     label = { Text("Nombre del ingrediente *") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = formColors
                 )
 
                 ExposedDropdownMenuBox(
@@ -120,8 +167,9 @@ fun EditarIngredienteScreen(
                         value = viewModel.categoriaSeleccionada?.nombre ?: "",
                         onValueChange = {}, readOnly = true, label = { Text("Categoría (Opcional)") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirCategoria) },
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        colors = formColors,
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = expandirCategoria, onDismissRequest = { expandirCategoria = false }
@@ -148,10 +196,11 @@ fun EditarIngredienteScreen(
                         },
                         label = { Text("Cantidad *") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        // Opcional: Pone el contorno en rojo si el error es de cantidad
                         isError = uiState is IngredienteUiState.Error && (viewModel.cantidad.toFloatOrNull() ?: -1f) < 0,
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = formColors
                     )
 
                     ExposedDropdownMenuBox(
@@ -162,7 +211,9 @@ fun EditarIngredienteScreen(
                         OutlinedTextField(
                             value = viewModel.unidad, onValueChange = {}, readOnly = true, label = { Text("Unidad *") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirDropdownUnidad) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(), modifier = Modifier.menuAnchor()
+                            colors = formColors,
+                            modifier = Modifier.menuAnchor(),
+                            shape = RoundedCornerShape(16.dp)
                         )
                         ExposedDropdownMenu(
                             expanded = expandirDropdownUnidad, onDismissRequest = { expandirDropdownUnidad = false }
@@ -182,11 +233,8 @@ fun EditarIngredienteScreen(
                     label = { Text("Fecha de Caducidad") },
                     modifier = Modifier.fillMaxWidth().clickable { mostrarCalendario = true },
                     enabled = false,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    shape = RoundedCornerShape(16.dp),
+                    colors = formColors
                 )
 
                 if (mostrarCalendario) {
@@ -197,7 +245,6 @@ fun EditarIngredienteScreen(
                                 datePickerState.selectedDateMillis?.let { millis ->
                                     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-                                    // ¡esta linea arregla el problema de la fecha, no la borren
                                     formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
 
                                     viewModel.fechaCaducidad = formatter.format(Date(millis))
@@ -212,7 +259,7 @@ fun EditarIngredienteScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 when (uiState) {
-                    is IngredienteUiState.Loading -> CircularProgressIndicator()
+                    is IngredienteUiState.Loading -> CircularProgressIndicator(color = LightYellow)
                     is IngredienteUiState.Error -> Text(text = uiState.message, color = MaterialTheme.colorScheme.error)
                     is IngredienteUiState.Success -> {
                         LaunchedEffect(Unit) {
@@ -225,16 +272,23 @@ fun EditarIngredienteScreen(
 
                 Button(
                     onClick = {
-                        // Extraemos los bytes de la foto NUEVA (si es que seleccionó una)
                         val bytesDeImagen = imagenUri?.let { uri ->
                             context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                         }
                         viewModel.guardarCambios(id = ingredienteId, imagenBytes = bytesDeImagen)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = LightYellow,
+                        contentColor = Color.Black,
+                        disabledContainerColor = LightYellow.copy(alpha = 0.5f)
+                    ),
                     enabled = uiState !is IngredienteUiState.Loading
                 ) {
-                    Text("Actualizar Ingrediente")
+                    Text("Actualizar ingrediente", fontWeight = FontWeight.Bold)
                 }
             }
         }

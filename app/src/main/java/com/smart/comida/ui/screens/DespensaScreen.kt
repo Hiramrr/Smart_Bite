@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -190,6 +192,7 @@ fun DespensaScreen(
                     val ingredientes = uiState.ingredientes.filter {
                         it.nombre.contains(searchQuery, ignoreCase = true)
                     }
+                    val categoriasPorId = categorias.associateBy { it.id }
 
                     if (ingredientes.isEmpty()) {
                         item {
@@ -217,7 +220,9 @@ fun DespensaScreen(
                                     items(lowStock) { ingrediente ->
                                         LowStockCard(
                                             ingrediente = ingrediente,
+                                            categoriaNombre = categoriasPorId[ingrediente.categoriaId]?.nombre ?: "Sin categoría",
                                             onClick = onVerDetalleClick,
+                                            onEditarClick = { ingrediente.id?.let(onEditarClick) },
                                             onEliminarClick = { ingredienteAEliminar = ingrediente }
                                         )
                                     }
@@ -241,7 +246,9 @@ fun DespensaScreen(
                                 Box(modifier = Modifier.padding(horizontal = 24.dp)) {
                                     RecentlyAddedCard(
                                         ingrediente = ingrediente,
+                                        categoriaNombre = categoriasPorId[ingrediente.categoriaId]?.nombre ?: "Sin categoría",
                                         onClick = onVerDetalleClick,
+                                        onEditarClick = { ingrediente.id?.let(onEditarClick) },
                                         onEliminarClick = { ingredienteAEliminar = ingrediente }
                                     )
                                 }
@@ -256,7 +263,13 @@ fun DespensaScreen(
 }
 
 @Composable
-fun LowStockCard(ingrediente: Ingrediente, onClick: (Int) -> Unit, onEliminarClick: () -> Unit) {
+fun LowStockCard(
+    ingrediente: Ingrediente,
+    categoriaNombre: String,
+    onClick: (Int) -> Unit,
+    onEditarClick: () -> Unit,
+    onEliminarClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .width(220.dp)
@@ -296,7 +309,12 @@ fun LowStockCard(ingrediente: Ingrediente, onClick: (Int) -> Unit, onEliminarCli
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Text(text = "Refrigerador", fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color.DarkGray)
+                        Text(
+                            text = categoriaNombre,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = Color.DarkGray
+                        )
                     }
                     Text(text = "${ingrediente.cantidad} ${ingrediente.unidad ?: "restantes"}", fontSize = 16.sp, color = Color.Black)
                 }
@@ -320,10 +338,24 @@ fun LowStockCard(ingrediente: Ingrediente, onClick: (Int) -> Unit, onEliminarCli
                     ) {
                         Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Refrigerador • ${ingrediente.cantidad}", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = "$categoriaNombre • ${ingrediente.cantidad}",
+                            color = Color.Black,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                     
-                    // Botón para eliminar en la tarjeta
+                    IconButton(onClick = onEditarClick) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar",
+                            tint = Color.Black.copy(alpha = 0.6f)
+                        )
+                    }
+
                     IconButton(onClick = onEliminarClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -346,7 +378,13 @@ fun LowStockCard(ingrediente: Ingrediente, onClick: (Int) -> Unit, onEliminarCli
 }
 
 @Composable
-fun RecentlyAddedCard(ingrediente: Ingrediente, onClick: (Int) -> Unit, onEliminarClick: () -> Unit) {
+fun RecentlyAddedCard(
+    ingrediente: Ingrediente,
+    categoriaNombre: String,
+    onClick: (Int) -> Unit,
+    onEditarClick: () -> Unit,
+    onEliminarClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -379,9 +417,23 @@ fun RecentlyAddedCard(ingrediente: Ingrediente, onClick: (Int) -> Unit, onElimin
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = ingrediente.nombre, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                Text(text = "Refrigerador • ${ingrediente.cantidad} ${ingrediente.unidad ?: "restantes"}", fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    text = "$categoriaNombre • ${ingrediente.cantidad} ${ingrediente.unidad ?: "restantes"}",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             
+            IconButton(onClick = onEditarClick) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Editar",
+                    tint = Color.Gray
+                )
+            }
+
             IconButton(onClick = onEliminarClick) {
                 Icon(
                     imageVector = Icons.Default.Delete,

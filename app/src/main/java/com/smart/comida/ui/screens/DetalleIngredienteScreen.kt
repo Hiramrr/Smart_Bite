@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ val GrayButtonBackground = Color(0xFFF0F0F0)
 fun DetalleIngredienteScreen(
     ingredienteId: Int,
     onVolver: () -> Unit,
+    onEditarClick: (Int) -> Unit,
     onVerRecetaClick: (Int) -> Unit,
     despensaViewModel: DespensaViewModel,
     recipeViewModel: RecipeViewModel = viewModel()
@@ -46,6 +48,9 @@ fun DetalleIngredienteScreen(
     }
 
     val recipeState by recipeViewModel.uiState.collectAsState()
+    val categoriaNombre = despensaViewModel.categorias
+        .find { it.id == ingrediente?.categoriaId }
+        ?.nombre ?: "Sin categoría"
     
     // Estado para el diálogo de confirmación
     var mostrarConfirmacionEliminar by remember { mutableStateOf(false) }
@@ -171,7 +176,7 @@ fun DetalleIngredienteScreen(
                             color = Color(0xFF1C1C1E)
                         )
                         Text(
-                            text = "Contenedor de Frescos", // Placeholder category
+                            text = categoriaNombre,
                             fontSize = 16.sp,
                             color = Color.Gray,
                             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
@@ -179,8 +184,7 @@ fun DetalleIngredienteScreen(
                     }
 
                     item {
-                        DetailRow("Categoría", "Productos Frescos")
-                        DetailRow("Ubicación", "Refrigerador")
+                        DetailRow("Categoría", categoriaNombre)
                         DetailRow("Cantidad", "${ingrediente?.cantidad ?: 0} ${ingrediente?.unidad ?: "restantes"}")
                         DetailRow("Agregado", "Recientemente") // Ideally from actual data if we had it
                         DetailRow("Caduca", ingrediente?.fechaCaducidad ?: "S/F")
@@ -189,7 +193,7 @@ fun DetalleIngredienteScreen(
 
                     item {
                         Button(
-                            onClick = { /* Add Stock */ },
+                            onClick = { ingrediente?.id?.let(onEditarClick) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
@@ -197,7 +201,17 @@ fun DetalleIngredienteScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = LightYellow),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                         ) {
-                            Text("+ Añadir Stock", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = Color.Black
+                                )
+                                Text("Editar Ingrediente", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(

@@ -32,7 +32,13 @@ fun AppNavigation() {
         }
 
         composable("agregar") {
-            AgregarIngredienteScreen(onGuardadoExitoso = { navController.popBackStack() })
+            AgregarIngredienteScreen(
+                onVolver = { navController.popBackStack() },
+                onGuardadoExitoso = {
+                    despensaViewModelCompartido.cargarIngredientes()
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(
@@ -40,7 +46,14 @@ fun AppNavigation() {
             arguments = listOf(navArgument("id") { type = NavType.IntType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt("id") ?: 0
-            EditarIngredienteScreen(ingredienteId = id, onGuardadoExitoso = { navController.popBackStack() })
+            EditarIngredienteScreen(
+                ingredienteId = id,
+                onVolver = { navController.popBackStack() },
+                onGuardadoExitoso = {
+                    despensaViewModelCompartido.cargarIngredientes()
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(
@@ -51,6 +64,9 @@ fun AppNavigation() {
             DetalleIngredienteScreen(
                 ingredienteId = id,
                 onVolver = { navController.popBackStack() },
+                onEditarClick = { idIngrediente ->
+                    navController.navigate("editar/$idIngrediente")
+                },
                 onVerRecetaClick = { idReceta ->
                     navController.navigate("detalle_receta/$idReceta")
                 },

@@ -23,16 +23,21 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgregarIngredienteScreen(
     viewModel: IngredienteViewModel = viewModel(),
+    onVolver: () -> Unit = {},
     onGuardadoExitoso: () -> Unit = {}
 ) {
     var nombre by remember { mutableStateOf("") }
@@ -68,26 +73,64 @@ fun AgregarIngredienteScreen(
         viewModel.cargarCategorias()
     }
 
+    val formColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = LightYellow,
+        unfocusedBorderColor = Color(0xFF5A5A5C),
+        focusedContainerColor = DarkCardBackground,
+        unfocusedContainerColor = DarkCardBackground,
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedLabelColor = LightYellow,
+        unfocusedLabelColor = Color(0xFFB3B3B3),
+        cursorColor = LightYellow,
+        disabledContainerColor = DarkCardBackground,
+        disabledTextColor = Color.White,
+        disabledBorderColor = Color(0xFF5A5A5C),
+        disabledLabelColor = Color(0xFFB3B3B3)
+    )
+
     Scaffold(
+        containerColor = DarkBackground,
         topBar = {
-            TopAppBar(title = { Text("Agregar Ingrediente") })
+            TopAppBar(
+                title = { Text("Agregar ingrediente", color = Color.White, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBackground,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {// --- CAJA DE FOTO ---
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = "Agrega un nuevo ingrediente a tu despensa",
+                color = Color(0xFFB3B3B3),
+                fontSize = 14.sp
+            )
+
             Box(
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .size(128.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(DarkCardBackground)
                     .clickable {
-                        // Al hacer clic, abre la galería solo para imágenes
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
@@ -95,34 +138,32 @@ fun AgregarIngredienteScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (imagenUri != null) {
-                    // Si el usuario ya eligió una foto, la dibujamos con Coil
                     AsyncImage(
                         model = imagenUri,
                         contentDescription = "Foto seleccionada",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop // Recorta la imagen para que llene el cuadrado
+                        contentScale = ContentScale.Crop
                     )
                 } else {
-                    // Si no hay foto, mostramos un ícono de camarita
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Agregar foto",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = Color(0xFFB3B3B3),
                         modifier = Modifier.size(36.dp)
                     )
                 }
             }
 
-            // Nombre
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
                 label = { Text("Nombre del ingrediente *") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = formColors
             )
 
-            // Categoría
             ExposedDropdownMenuBox(
                 expanded = expandirCategoria,
                 onExpandedChange = { expandirCategoria = !expandirCategoria },
@@ -134,8 +175,9 @@ fun AgregarIngredienteScreen(
                     readOnly = true,
                     label = { Text("Categoría (Opcional)") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirCategoria) },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    colors = formColors,
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
                 )
                 ExposedDropdownMenu(
                     expanded = expandirCategoria,
@@ -153,7 +195,6 @@ fun AgregarIngredienteScreen(
                 }
             }
 
-            // Fila Cantidad y Unidad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -164,7 +205,9 @@ fun AgregarIngredienteScreen(
                     label = { Text("Cantidad *") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = formColors
                 )
 
                 ExposedDropdownMenuBox(
@@ -178,8 +221,9 @@ fun AgregarIngredienteScreen(
                         readOnly = true,
                         label = { Text("Unidad *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirDropdownUnidad) },
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                        modifier = Modifier.menuAnchor()
+                        colors = formColors,
+                        modifier = Modifier.menuAnchor(),
+                        shape = RoundedCornerShape(16.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = expandirDropdownUnidad,
@@ -198,25 +242,19 @@ fun AgregarIngredienteScreen(
                 }
             }
 
-            // Fecha de Caducidad con Interacción
             OutlinedTextField(
                 value = fechaCaducidad,
                 onValueChange = { },
-                readOnly = true, // Evita que se escriba texto
+                readOnly = true,
                 label = { Text("Fecha de Caducidad") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Abre el calendario al tocar el campo
                     .clickable { mostrarCalendario = true },
-                enabled = false, // Lo desactivamos visualmente como input
-                colors = OutlinedTextFieldDefaults.colors(
-                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledBorderColor = MaterialTheme.colorScheme.outline,
-                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                enabled = false,
+                shape = RoundedCornerShape(16.dp),
+                colors = formColors
             )
 
-            // Cuadro de Diálogo del Calendario
             if (mostrarCalendario) {
                 DatePickerDialog(
                     onDismissRequest = { mostrarCalendario = false },
@@ -225,12 +263,9 @@ fun AgregarIngredienteScreen(
                             datePickerState.selectedDateMillis?.let { millis ->
                                 val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-                                // esta linea arregla el problema de la fecha, no la borrennnn
                                 formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
 
                                 fechaCaducidad = formatter.format(Date(millis))
-
-                                // Opcional: Limpia el error para que desaparezca el texto rojo de la pantalla
                                 if (uiState is IngredienteUiState.Error) viewModel.resetState()
                             }
                             mostrarCalendario = false
@@ -247,10 +282,9 @@ fun AgregarIngredienteScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             when (uiState) {
-                is IngredienteUiState.Loading -> CircularProgressIndicator()
+                is IngredienteUiState.Loading -> CircularProgressIndicator(color = LightYellow)
                 is IngredienteUiState.Error -> Text(text = uiState.message, color = MaterialTheme.colorScheme.error)
                 is IngredienteUiState.Success -> {
-                    Text(text = "¡Ingrediente guardado!", color = MaterialTheme.colorScheme.primary)
                     LaunchedEffect(Unit) {
                         onGuardadoExitoso()
                         viewModel.resetState()
@@ -261,7 +295,6 @@ fun AgregarIngredienteScreen(
 
             Button(
                 onClick = {
-                    // Convertimos la URI local a ByteArray usando el Contexto de Android
                     val bytesDeImagen = imagenUri?.let { uri ->
                         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     }
@@ -272,13 +305,21 @@ fun AgregarIngredienteScreen(
                         unidad = unidad,
                         fechaCaducidad = fechaCaducidad,
                         categoriaId = categoriaSeleccionada?.id,
-                        imagenBytes = bytesDeImagen // --- PASAMOS LA FOTO ---
+                        imagenBytes = bytesDeImagen
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = LightYellow,
+                    contentColor = Color.Black,
+                    disabledContainerColor = LightYellow.copy(alpha = 0.5f)
+                ),
                 enabled = uiState !is IngredienteUiState.Loading
             ) {
-                Text("Guardar Ingrediente")
+                Text("Guardar ingrediente", fontWeight = FontWeight.Bold)
             }
         }
     }
