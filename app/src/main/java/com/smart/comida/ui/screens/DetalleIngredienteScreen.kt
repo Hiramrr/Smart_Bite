@@ -1,21 +1,34 @@
 package com.smart.comida.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import com.smart.comida.ui.viewmodel.RecipeUiState
 import com.smart.comida.ui.viewmodel.RecipeViewModel
+
+val DetailBackground = Color(0xFFE8EFE5)
+val WhiteCardBackground = Color.White
+val GrayButtonBackground = Color(0xFFF0F0F0)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +39,6 @@ fun DetalleIngredienteScreen(
     despensaViewModel: DespensaViewModel,
     recipeViewModel: RecipeViewModel = viewModel()
 ){
-    // Observamos los estados
     val ingrediente = despensaViewModel.uiState.let { state ->
         if (state is com.smart.comida.ui.viewmodel.DespensaUiState.Success) {
             state.ingredientes.find { it.id == ingredienteId }
@@ -34,66 +46,247 @@ fun DetalleIngredienteScreen(
     }
 
     val recipeState by recipeViewModel.uiState.collectAsState()
+    
+    // Estado para el diálogo de confirmación
+    var mostrarConfirmacionEliminar by remember { mutableStateOf(false) }
 
-    // Cuando la pantalla se abre y tenemos el ingrediente, buscamos recetas en tu backend
     LaunchedEffect(ingrediente) {
         if (ingrediente != null) {
             recipeViewModel.searchRecipes(ingrediente.nombre)
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(ingrediente?.nombre ?: "Detalles") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) { Icon(Icons.Default.ArrowBack, "Volver") }
-                }
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-
-            // 1. Info del Ingrediente
-            ingrediente?.let { ing ->
-                Column(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (!ing.imagenUrl.isNullOrEmpty()) {
-                        AsyncImage(model = ing.imagenUrl, contentDescription = null, modifier = Modifier.size(120.dp))
-                    }
-                    Text("Cantidad disponible: ${ing.cantidad} ${ing.unidad ?: ""}", style = MaterialTheme.typography.titleMedium)
-                    Text("Caduca: ${ing.fechaCaducidad ?: "S/F"}", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            Divider()
-
-            // 2. Título de Recetas Sugeridas
-            Text(
-                "¿Qué preparar con esto?",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            // 3. Lista de Recetas desde tu Backend (CU-08)
-            when (recipeState) {
-                is RecipeUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                is RecipeUiState.Error -> Text((recipeState as RecipeUiState.Error).message, color = MaterialTheme.colorScheme.error)
-                is RecipeUiState.SearchSuccess -> {
-                    val recetas = (recipeState as RecipeUiState.SearchSuccess).recipes
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(recetas) { receta ->
-                            ListItem(
-                                modifier = Modifier.clickable { onVerRecetaClick(receta.id) },
-                                headlineContent = { Text(receta.title) },
-                                leadingContent = {
-                                    AsyncImage(model = receta.image, contentDescription = null, modifier = Modifier.size(56.dp))
-                                }
-                            )
+    if (mostrarConfirmacionEliminar) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmacionEliminar = false },
+            title = { Text("Confirmar eliminación") },
+            text = { Text("¿Estás seguro de que deseas eliminar ${ingrediente?.nombre}? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (ingrediente?.id != null) {
+                            despensaViewModel.eliminarIngrediente(ingrediente.id, ingrediente.imagenUrl)
+                            onVolver()
                         }
+                        mostrarConfirmacionEliminar = false
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmacionEliminar = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    Scaffold(
+        containerColor = DetailBackground
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            // Top App Bar + Image
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.45f)
+            ) {
+                if (ingrediente != null && !ingrediente.imagenUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ingrediente.imagenUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(DetailBackground))
+                }
+
+                // Sutil gradiente para asegurar la visibilidad de los botones en la parte superior
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .background(
+                            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.4f), Color.Transparent)
+                            )
+                        )
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    IconButton(
+                        onClick = onVolver,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color.White.copy(alpha = 0.9f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.Black)
+                    }
+                    IconButton(
+                        onClick = { /* Add Stock Action */ },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color.White.copy(alpha = 0.9f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Añadir", tint = Color.Black)
                     }
                 }
-                else -> {}
             }
+
+            // Bottom Info Card
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.55f)
+                    .offset(y = (-24).dp), // Solapa un poco con la imagen
+                color = WhiteCardBackground,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp, vertical = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        Text(
+                            text = ingrediente?.nombre ?: "Detalles",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        Text(
+                            text = "Contenedor de Frescos", // Placeholder category
+                            fontSize = 16.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                        )
+                    }
+
+                    item {
+                        DetailRow("Categoría", "Productos Frescos")
+                        DetailRow("Ubicación", "Refrigerador")
+                        DetailRow("Cantidad", "${ingrediente?.cantidad ?: 0} ${ingrediente?.unidad ?: "restantes"}")
+                        DetailRow("Agregado", "Recientemente") // Ideally from actual data if we had it
+                        DetailRow("Caduca", ingrediente?.fechaCaducidad ?: "S/F")
+                        Spacer(modifier = Modifier.height(32.dp))
+                    }
+
+                    item {
+                        Button(
+                            onClick = { /* Add Stock */ },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = LightYellow),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                        ) {
+                            Text("+ Añadir Stock", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { mostrarConfirmacionEliminar = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = GrayButtonBackground),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                        ) {
+                            Text("Eliminar", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(32.dp))
+                    }
+
+                    // Sugerencias de recetas
+                    item {
+                        Text(
+                            text = "¿Qué preparar con esto?",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    when (recipeState) {
+                        is RecipeUiState.Loading -> {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = LightYellow)
+                                }
+                            }
+                        }
+                        is RecipeUiState.Error -> {
+                            item {
+                                Text((recipeState as RecipeUiState.Error).message, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                        is RecipeUiState.SearchSuccess -> {
+                            val recetas = (recipeState as RecipeUiState.SearchSuccess).recipes
+                            items(recetas) { receta ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onVerRecetaClick(receta.id) }
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = receta.image,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(text = receta.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                                }
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, color = Color.Gray, fontSize = 16.sp)
+        Surface(
+            color = GrayButtonBackground,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = value,
+                color = Color.Black,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
         }
     }
 }
