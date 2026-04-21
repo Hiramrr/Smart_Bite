@@ -1,5 +1,6 @@
 package com.smart.comida.ui.screens
 
+import androidx.compose.foundation.clickable // <-- NUEVO: Importación para el clic
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,19 +22,18 @@ import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DespensaScreen(
     viewModel: DespensaViewModel = viewModel(),
     onAgregarClick: () -> Unit,
-    onEditarClick: (Int) -> Unit
+    onEditarClick: (Int) -> Unit,
+    onVerDetalleClick: (Int) -> Unit
 ) {
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
@@ -126,13 +126,16 @@ fun DespensaScreen(
                                             if (ingrediente.id != null) onEditarClick(ingrediente.id)
                                         },
                                         onEliminarClick = {
-                                            // --- NUEVO: PASAMOS EL ID Y LA URL DE LA IMAGEN ---
                                             if (ingrediente.id != null) {
                                                 viewModel.eliminarIngrediente(
                                                     id = ingrediente.id,
                                                     imagenUrl = ingrediente.imagenUrl
                                                 )
                                             }
+                                        },
+                                        // --- NUEVO: PASAMOS EL CLIC PARA NAVEGAR AL DETALLE ---
+                                        onCardClick = {
+                                            if (ingrediente.id != null) onVerDetalleClick(ingrediente.id)
                                         }
                                     )
                                 }
@@ -150,16 +153,17 @@ fun DespensaScreen(
 fun IngredienteCard(
     ingrediente: Ingrediente,
     onEditarClick: () -> Unit,
-    onEliminarClick: () -> Unit
+    onEliminarClick: () -> Unit,
+    onCardClick: () -> Unit // --- NUEVO: Parámetro para manejar el clic en la tarjeta ---
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.7f), // Hacemos la tarjeta un poco más alta para dar respiro
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Sombra más definida
+            .aspectRatio(0.7f)
+            .clickable { onCardClick() }, // --- NUEVO: Hace que toda la tarjeta reaccione al toque ---
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        // Quitamos el SpaceBetween de aquí y dejamos que el weight(1f) haga el trabajo
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -175,23 +179,21 @@ fun IngredienteCard(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error // Pone el bote de basura en rojo
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
                 IconButton(onClick = onEditarClick, modifier = Modifier.size(32.dp)) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Editar",
-                        tint = MaterialTheme.colorScheme.primary // Pone el lápiz en color primario
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
 
-            // --- 2. SECCIÓN CENTRAL: Foto y Detalles ---
-            // El weight(1f) ocupa todo el centro y empuja la píldora hacia abajo
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center, // Centra el contenido perfecto
+                verticalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -201,8 +203,8 @@ fun IngredienteCard(
                         model = ingrediente.imagenUrl,
                         contentDescription = "Foto de ${ingrediente.nombre}",
                         modifier = Modifier
-                            .size(80.dp) // Hacemos la foto un pelín más grande
-                            .clip(RoundedCornerShape(16.dp)), // Bordes más suaves
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -211,9 +213,9 @@ fun IngredienteCard(
                 Text(
                     text = ingrediente.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, // Letra en Negritas
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    maxLines = 1, // Evita que un nombre larguísimo rompa la tarjeta
+                    maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
 
@@ -227,13 +229,12 @@ fun IngredienteCard(
                 )
             }
 
-            // --- 3. SECCIÓN INFERIOR: Píldora de Caducidad ---
             Surface(
                 shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp) // Separador visual del contenido central
+                    .padding(top = 8.dp)
             ) {
                 Text(
                     text = "Caduca: ${ingrediente.fechaCaducidad ?: "S/F"}",
