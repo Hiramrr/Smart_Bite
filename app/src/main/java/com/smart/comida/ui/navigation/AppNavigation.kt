@@ -22,6 +22,7 @@ fun AppNavigation() {
             DespensaScreen(
                 viewModel = despensaViewModelCompartido,
                 onAgregarClick = { navController.navigate("agregar") },
+                onHistorialDesperdicioClick = { navController.navigate("historial_desperdicio") },
                 onEditarClick = { idIngrediente ->
                     navController.navigate("editar/$idIngrediente")
                 },
@@ -81,6 +82,13 @@ fun AppNavigation() {
             val id = backStackEntry.arguments?.getInt("id") ?: 0
             DetalleRecetaScreen(
                 recetaId = id,
+                onVolver = { navController.popBackStack() }
+            )
+        }
+
+        composable("historial_desperdicio") {
+            HistorialDesperdicioScreen(
+                viewModel = despensaViewModelCompartido,
                 onVolver = { navController.popBackStack() }
             )
         }

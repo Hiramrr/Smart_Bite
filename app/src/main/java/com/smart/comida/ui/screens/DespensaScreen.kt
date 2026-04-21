@@ -43,41 +43,47 @@ val GreenAccent = Color(0xFF637C5B)
 fun DespensaScreen(
     viewModel: DespensaViewModel = viewModel(),
     onAgregarClick: () -> Unit,
+    onHistorialDesperdicioClick: () -> Unit,
     onEditarClick: (Int) -> Unit,
     onVerDetalleClick: (Int) -> Unit
 ) {
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
     var searchQuery by remember { mutableStateOf("") }
-    
+    val snackbarHostState = remember { SnackbarHostState() }
+
     // Estado para el diálogo de confirmación
-    var ingredienteAEliminar by remember { mutableStateOf<Ingrediente?>(null) }
+    var ingredienteADesperdicio by remember { mutableStateOf<Ingrediente?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarIngredientes()
     }
 
-    if (ingredienteAEliminar != null) {
+    LaunchedEffect(viewModel.mensajeOperacion) {
+        val mensaje = viewModel.mensajeOperacion ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(mensaje)
+        viewModel.limpiarMensajeOperacion()
+    }
+
+    if (ingredienteADesperdicio != null) {
         AlertDialog(
-            onDismissRequest = { ingredienteAEliminar = null },
-            title = { Text("Confirmar eliminación") },
-            text = { Text("¿Estás seguro de que deseas eliminar ${ingredienteAEliminar?.nombre}? Esta acción no se puede deshacer.") },
+            onDismissRequest = { ingredienteADesperdicio = null },
+            title = { Text("Registrar desperdicio") },
+            text = { Text("¿Deseas registrar ${ingredienteADesperdicio?.nombre} como desperdicio? Se quitará del inventario activo.") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        ingredienteAEliminar?.let { ing ->
-                            if (ing.id != null) {
-                                viewModel.eliminarIngrediente(ing.id, ing.imagenUrl)
-                            }
+                        ingredienteADesperdicio?.let { ing ->
+                            viewModel.registrarComoDesperdicio(ing)
                         }
-                        ingredienteAEliminar = null
+                        ingredienteADesperdicio = null
                     }
                 ) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text("Registrar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { ingredienteAEliminar = null }) {
+                TextButton(onClick = { ingredienteADesperdicio = null }) {
                     Text("Cancelar")
                 }
             }
@@ -86,6 +92,7 @@ fun DespensaScreen(
 
     Scaffold(
         containerColor = DarkBackground,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAgregarClick,
@@ -106,14 +113,28 @@ fun DespensaScreen(
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             item {
-                Text(
-                    text = "Mi Despensa",
-                    color = Color.White,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-1).sp,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mi Despensa",
+                        color = Color.White,
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-1).sp
+                    )
+                    IconButton(onClick = onHistorialDesperdicioClick) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Ver historial de desperdicio",
+                            tint = Color.White
+                        )
+                    }
+                }
             }
 
             item {
@@ -284,7 +305,7 @@ fun DespensaScreen(
                                             categoriaNombre = categoriasPorId[ingrediente.categoriaId]?.nombre ?: "Sin categoría",
                                             onClick = onVerDetalleClick,
                                             onEditarClick = { ingrediente.id?.let(onEditarClick) },
-                                            onEliminarClick = { ingredienteAEliminar = ingrediente }
+                                            onEliminarClick = { ingredienteADesperdicio = ingrediente }
                                         )
                                     }
                                 }
@@ -310,7 +331,7 @@ fun DespensaScreen(
                                         categoriaNombre = categoriasPorId[ingrediente.categoriaId]?.nombre ?: "Sin categoría",
                                         onClick = onVerDetalleClick,
                                         onEditarClick = { ingrediente.id?.let(onEditarClick) },
-                                        onEliminarClick = { ingredienteAEliminar = ingrediente }
+                                        onEliminarClick = { ingredienteADesperdicio = ingrediente }
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -420,7 +441,7 @@ fun LowStockCard(
                     IconButton(onClick = onEliminarClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Eliminar",
+                            contentDescription = "Registrar desperdicio",
                             tint = Color.Black.copy(alpha = 0.6f)
                         )
                     }
@@ -498,7 +519,7 @@ fun RecentlyAddedCard(
             IconButton(onClick = onEliminarClick) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Eliminar",
+                    contentDescription = "Registrar desperdicio",
                     tint = Color.Gray
                 )
             }

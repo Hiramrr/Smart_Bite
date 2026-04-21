@@ -1,10 +1,13 @@
 package com.smart.comida.data.repository
 
 import com.smart.comida.data.model.Categoria
+import com.smart.comida.data.model.Desperdicio
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 class InventarioRepository {
 
@@ -84,6 +87,59 @@ class InventarioRepository {
             SupabaseClient.client.postgrest["ingredientes"]
                 .delete { filter { eq("id", id) } }
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun registrarComoDesperdicio(ingrediente: Ingrediente): Result<Unit> {
+        val ingredienteId = ingrediente.id
+            ?: return Result.failure(IllegalArgumentException("Ingrediente sin ID válido"))
+        val fechaDesecho = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
+        val desperdicio = Desperdicio(
+            nombre = ingrediente.nombre,
+            cantidad = ingrediente.cantidad,
+            unidad = ingrediente.unidad,
+            fechaCaducidad = ingrediente.fechaCaducidad,
+            categoriaId = ingrediente.categoriaId,
+            fechaDesecho = fechaDesecho
+        )
+
+        return try {
+            SupabaseClient.client.postgrest["historial_desperdicio"]
+                .insert(desperdicio)
+
+            try {
+                SupabaseClient.client.postgrest["ingredientes"]
+                    .delete { filter { eq("id", ingredienteId) } }
+            } catch (deleteError: Exception) {
+                // Si falla la eliminación en inventario, revertimos el historial insertado.
+                runCatching {
+                    SupabaseClient.client.postgrest["historial_desperdicio"]
+                        .delete {
+                            filter {
+                                eq("nombre", ingrediente.nombre)
+                                eq("cantidad", ingrediente.cantidad)
+                                eq("fecha_desecho", fechaDesecho)
+                            }
+                        }
+                }
+                return Result.failure(deleteError)
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun obtenerHistorialDesperdicio(): Result<List<Desperdicio>> {
+        return try {
+            val lista = SupabaseClient.client.postgrest["historial_desperdicio"]
+                .select()
+                .decodeList<Desperdicio>()
+            Result.success(lista)
         } catch (e: Exception) {
             Result.failure(e)
         }

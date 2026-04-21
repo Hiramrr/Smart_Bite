@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smart.comida.data.model.Categoria
+import com.smart.comida.data.model.Desperdicio
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
@@ -14,6 +15,12 @@ class DespensaViewModel : ViewModel() {
     private val repository = InventarioRepository()
 
     var uiState by mutableStateOf<DespensaUiState>(DespensaUiState.Loading)
+        private set
+
+    var mensajeOperacion by mutableStateOf<String?>(null)
+        private set
+
+    var historialUiState by mutableStateOf<HistorialDesperdicioUiState>(HistorialDesperdicioUiState.Loading)
         private set
 
     // Lista de categorías para los filtros
@@ -69,6 +76,36 @@ class DespensaViewModel : ViewModel() {
         }
     }
 
+    fun registrarComoDesperdicio(ingrediente: Ingrediente) {
+        if (ingrediente.id == null) {
+            mensajeOperacion = "No se pudo registrar el desperdicio: ingrediente inválido."
+            return
+        }
+
+        viewModelScope.launch {
+            val resultado = repository.registrarComoDesperdicio(ingrediente)
+            resultado.onSuccess {
+                mensajeOperacion = "Ingrediente registrado como desperdicio."
+                cargarIngredientes()
+            }.onFailure {
+                mensajeOperacion = "Error al registrar desperdicio: ${it.message ?: "Intenta nuevamente."}"
+            }
+        }
+    }
+
+    fun limpiarMensajeOperacion() {
+        mensajeOperacion = null
+    }
+
+    fun cargarHistorialDesperdicio() {
+        historialUiState = HistorialDesperdicioUiState.Loading
+        viewModelScope.launch {
+            repository.obtenerHistorialDesperdicio()
+                .onSuccess { historialUiState = HistorialDesperdicioUiState.Success(it) }
+                .onFailure { historialUiState = HistorialDesperdicioUiState.Error("Error al cargar historial: ${it.message}") }
+        }
+    }
+
     // --- LÓGICA DE FILTROS ---
 
     fun seleccionarFiltroCategoria(categoria: Categoria?) {
@@ -116,4 +153,10 @@ sealed class DespensaUiState {
     object Loading : DespensaUiState()
     data class Success(val ingredientes: List<Ingrediente>) : DespensaUiState()
     data class Error(val message: String) : DespensaUiState()
+}
+
+sealed class HistorialDesperdicioUiState {
+    object Loading : HistorialDesperdicioUiState()
+    data class Success(val desperdicios: List<Desperdicio>) : HistorialDesperdicioUiState()
+    data class Error(val message: String) : HistorialDesperdicioUiState()
 }
