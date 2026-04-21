@@ -92,7 +92,20 @@ class DespensaViewModel : ViewModel() {
             // Filtramos solo los que pertenezcan a la categoría seleccionada
             listaFiltrada = listaFiltrada.filter { it.categoriaId == filtroSeleccionado?.id }
         } else if (filtroPorCaducar) {
-            // Lógica pendiente (por ahora mostrará todos, lo implementaremos después)
+            // Filtramos ingredientes que caducan pronto (próximos 7 días) o ya caducaron
+            val hoy = java.time.LocalDate.now()
+            val limite = hoy.plusDays(7)
+            
+            listaFiltrada = listaFiltrada.filter { ingrediente ->
+                ingrediente.fechaCaducidad?.let { fechaStr ->
+                    try {
+                        val fecha = java.time.LocalDate.parse(fechaStr)
+                        !fecha.isAfter(limite)
+                    } catch (e: Exception) {
+                        false
+                    }
+                } ?: false
+            }
         }
 
         uiState = DespensaUiState.Success(listaFiltrada)

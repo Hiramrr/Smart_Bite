@@ -150,9 +150,22 @@ fun DespensaScreen(
                         FilterChip(
                             selected = viewModel.filtroSeleccionado == null && !viewModel.filtroPorCaducar,
                             onClick = { viewModel.seleccionarFiltroCategoria(null) },
-                            label = { Text("Todos", color = if (viewModel.filtroSeleccionado == null && !viewModel.filtroPorCaducar) Color.White else Color.White) },
+                            label = { Text("Todos", color = Color.White) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = GreenAccent,
+                                containerColor = DarkCardBackground
+                            ),
+                            shape = CircleShape,
+                            border = null
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = viewModel.filtroPorCaducar,
+                            onClick = { viewModel.toggleFiltroPorCaducar() },
+                            label = { Text("Próximos a caducar", color = Color.White) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFD47979), // Un color rojizo para caducidad
                                 containerColor = DarkCardBackground
                             ),
                             shape = CircleShape,
