@@ -26,7 +26,7 @@ class DespensaViewModel : ViewModel() {
     // Estado de los filtros
     var filtroSeleccionado by mutableStateOf<Categoria?>(null)
         private set
-    var filtroPorCaducar by mutableStateOf(false)
+    var diasFiltroCaducidad by mutableStateOf<Int?>(null)
         private set
 
     init {
@@ -73,13 +73,13 @@ class DespensaViewModel : ViewModel() {
 
     fun seleccionarFiltroCategoria(categoria: Categoria?) {
         filtroSeleccionado = categoria
-        filtroPorCaducar = false // Apagamos el de caducar si elegimos una categoría
+        diasFiltroCaducidad = null // Apagamos el de caducar si elegimos una categoría
         aplicarFiltros()
     }
 
-    fun toggleFiltroPorCaducar() {
-        filtroPorCaducar = !filtroPorCaducar
-        if (filtroPorCaducar) {
+    fun establecerFiltroCaducidad(dias: Int?) {
+        diasFiltroCaducidad = dias
+        if (dias != null) {
             filtroSeleccionado = null // Apagamos las categorías si elegimos por caducar
         }
         aplicarFiltros()
@@ -91,10 +91,10 @@ class DespensaViewModel : ViewModel() {
         if (filtroSeleccionado != null) {
             // Filtramos solo los que pertenezcan a la categoría seleccionada
             listaFiltrada = listaFiltrada.filter { it.categoriaId == filtroSeleccionado?.id }
-        } else if (filtroPorCaducar) {
-            // Filtramos ingredientes que caducan pronto (próximos 7 días) o ya caducaron
+        } else if (diasFiltroCaducidad != null) {
+            // Filtramos ingredientes que caducan pronto (según los días elegidos) o ya caducaron
             val hoy = java.time.LocalDate.now()
-            val limite = hoy.plusDays(7)
+            val limite = hoy.plusDays(diasFiltroCaducidad!!.toLong())
             
             listaFiltrada = listaFiltrada.filter { ingrediente ->
                 ingrediente.fechaCaducidad?.let { fechaStr ->
