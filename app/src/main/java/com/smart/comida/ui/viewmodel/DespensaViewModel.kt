@@ -114,10 +114,14 @@ class DespensaViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    fun establecerFiltroCaducidad(dias: Int?) {
-        diasFiltroCaducidad = dias
-        if (dias != null) {
-            filtroSeleccionado = null // Apagamos las categorías si elegimos por caducar
+    fun seleccionarFiltroCaducidad(dias: Int?) {
+        if (diasFiltroCaducidad == dias) {
+            diasFiltroCaducidad = null
+        } else {
+            diasFiltroCaducidad = dias
+            if (dias != null) {
+                filtroSeleccionado = null // Apagamos las categorías si elegimos por caducar
+            }
         }
         aplicarFiltros()
     }
@@ -129,19 +133,19 @@ class DespensaViewModel : ViewModel() {
             // Filtramos solo los que pertenezcan a la categoría seleccionada
             listaFiltrada = listaFiltrada.filter { it.categoriaId == filtroSeleccionado?.id }
         } else if (diasFiltroCaducidad != null) {
-            // Filtramos ingredientes que caducan pronto (según los días elegidos) o ya caducaron
             val hoy = java.time.LocalDate.now()
-            val limite = hoy.plusDays(diasFiltroCaducidad!!.toLong())
-            
-            listaFiltrada = listaFiltrada.filter { ingrediente ->
-                ingrediente.fechaCaducidad?.let { fechaStr ->
+            val fechaLimite = hoy.plusDays(diasFiltroCaducidad!!.toLong())
+            listaFiltrada = listaFiltrada.filter {
+                if (it.fechaCaducidad.isNullOrEmpty()) {
+                    false
+                } else {
                     try {
-                        val fecha = java.time.LocalDate.parse(fechaStr)
-                        !fecha.isAfter(limite)
+                        val fechaIngrediente = java.time.LocalDate.parse(it.fechaCaducidad)
+                        !fechaIngrediente.isBefore(hoy) && !fechaIngrediente.isAfter(fechaLimite)
                     } catch (e: Exception) {
                         false
                     }
-                } ?: false
+                }
             }
         }
 

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -127,12 +128,14 @@ fun DespensaScreen(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-1).sp
                     )
-                    IconButton(onClick = onHistorialDesperdicioClick) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Ver historial de desperdicio",
-                            tint = Color.White
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onHistorialDesperdicioClick) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Ver historial de desperdicio",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -162,6 +165,8 @@ fun DespensaScreen(
             }
 
             item {
+                var expandirCaducidad by remember { mutableStateOf(false) }
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 24.dp),
@@ -170,7 +175,10 @@ fun DespensaScreen(
                     item {
                         FilterChip(
                             selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null,
-                            onClick = { viewModel.seleccionarFiltroCategoria(null) },
+                            onClick = { 
+                                viewModel.seleccionarFiltroCategoria(null)
+                                viewModel.seleccionarFiltroCaducidad(null)
+                            },
                             label = { Text("Todos", color = Color.White) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = GreenAccent,
@@ -181,21 +189,11 @@ fun DespensaScreen(
                         )
                     }
                     item {
-                        var expanded by remember { mutableStateOf(false) }
-                        
                         Box {
                             FilterChip(
                                 selected = viewModel.diasFiltroCaducidad != null,
-                                onClick = { expanded = true },
-                                label = { 
-                                    Text(
-                                        if (viewModel.diasFiltroCaducidad != null) 
-                                            "Caducidad: ${viewModel.diasFiltroCaducidad} días" 
-                                        else 
-                                            "Filtrar por caducidad", 
-                                        color = Color.White
-                                    ) 
-                                },
+                                onClick = { expandirCaducidad = true },
+                                label = { Text(if (viewModel.diasFiltroCaducidad != null) "Caducan: ${viewModel.diasFiltroCaducidad} días" else "Filtrar por caducidad", color = Color.White) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = Color(0xFFD47979), // Un color rojizo para caducidad
                                     containerColor = DarkCardBackground
@@ -205,37 +203,25 @@ fun DespensaScreen(
                             )
                             
                             DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false },
+                                expanded = expandirCaducidad,
+                                onDismissRequest = { expandirCaducidad = false },
                                 modifier = Modifier.background(DarkCardBackground)
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Próximos 3 días", color = Color.White) },
-                                    onClick = {
-                                        viewModel.establecerFiltroCaducidad(3)
-                                        expanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Próximos 5 días", color = Color.White) },
-                                    onClick = {
-                                        viewModel.establecerFiltroCaducidad(5)
-                                        expanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Próximos 7 días", color = Color.White) },
-                                    onClick = {
-                                        viewModel.establecerFiltroCaducidad(7)
-                                        expanded = false
-                                    }
-                                )
+                                listOf(3, 5, 7).forEach { dias ->
+                                    DropdownMenuItem(
+                                        text = { Text("Próximos $dias días", color = Color.White) },
+                                        onClick = {
+                                            viewModel.seleccionarFiltroCaducidad(dias)
+                                            expandirCaducidad = false
+                                        }
+                                    )
+                                }
                                 Divider(color = Color.Gray.copy(alpha = 0.5f))
                                 DropdownMenuItem(
                                     text = { Text("Quitar filtro", color = Color.White) },
                                     onClick = {
-                                        viewModel.establecerFiltroCaducidad(null)
-                                        expanded = false
+                                        viewModel.seleccionarFiltroCaducidad(null)
+                                        expandirCaducidad = false
                                     }
                                 )
                             }
