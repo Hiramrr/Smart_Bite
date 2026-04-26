@@ -35,6 +35,8 @@ class DespensaViewModel : ViewModel() {
         private set
     var diasFiltroCaducidad by mutableStateOf<Int?>(null)
         private set
+    var searchQuery by mutableStateOf("")
+        private set
 
     init {
         // Al nacer el ViewModel, descargamos las categorías para los botones
@@ -108,6 +110,11 @@ class DespensaViewModel : ViewModel() {
 
     // --- LÓGICA DE FILTROS ---
 
+    fun actualizarBusqueda(query: String) {
+        searchQuery = query
+        aplicarFiltros()
+    }
+
     fun seleccionarFiltroCategoria(categoria: Categoria?) {
         filtroSeleccionado = categoria
         diasFiltroCaducidad = null // Apagamos el de caducar si elegimos una categoría
@@ -128,6 +135,12 @@ class DespensaViewModel : ViewModel() {
 
     private fun aplicarFiltros() {
         var listaFiltrada = todosLosIngredientes
+
+        if (searchQuery.isNotBlank()) {
+            listaFiltrada = listaFiltrada.filter {
+                it.nombre.contains(searchQuery, ignoreCase = true)
+            }
+        }
 
         if (filtroSeleccionado != null) {
             // Filtramos solo los que pertenezcan a la categoría seleccionada

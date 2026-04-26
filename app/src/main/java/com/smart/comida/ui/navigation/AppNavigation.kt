@@ -1,15 +1,22 @@
 package com.smart.comida.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -19,6 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smart.comida.ui.screens.*
+import com.smart.comida.ui.theme.PrimaryGreen
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 
 @Composable
@@ -31,49 +39,88 @@ fun AppNavigation() {
 
     Scaffold(
         bottomBar = {
-            if (currentRoute == "despensa" || currentRoute == "lista_compras") {
+            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas")
+            if (showBottomBar) {
                 NavigationBar(
-                    containerColor = Color(0xFF2C2C2E), // DarkCardBackground color from your theme
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Gray,
+                    tonalElevation = 8.dp
                 ) {
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Kitchen, contentDescription = "Despensa") },
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Despensa") },
                         label = { Text("Despensa") },
-                        selected = currentRoute == "despensa",
+                        selected = currentRoute == "dashboard" || currentRoute == "despensa_list",
                         onClick = {
-                            navController.navigate("despensa") {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                            navController.navigate("dashboard") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.Black,
-                            selectedTextColor = Color(0xFFEBEB9B), // LightYellow
-                            indicatorColor = Color(0xFFEBEB9B),
+                            selectedIconColor = PrimaryGreen,
+                            selectedTextColor = PrimaryGreen,
+                            indicatorColor = Color.Transparent,
                             unselectedIconColor = Color.Gray,
                             unselectedTextColor = Color.Gray
                         )
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Lista") },
-                        label = { Text("Lista") },
+                        icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Compras") },
+                        label = { Text("Compras") },
                         selected = currentRoute == "lista_compras",
                         onClick = {
                             navController.navigate("lista_compras") {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.Black,
-                            selectedTextColor = Color(0xFFEBEB9B),
-                            indicatorColor = Color(0xFFEBEB9B),
+                            selectedIconColor = PrimaryGreen,
+                            selectedTextColor = PrimaryGreen,
+                            indicatorColor = Color.Transparent,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray
+                        )
+                    )
+                    
+                    // The floating + button in the middle
+                    Box(modifier = Modifier.padding(top = 12.dp)) {
+                        FloatingActionButton(
+                            onClick = { navController.navigate("agregar") },
+                            containerColor = PrimaryGreen,
+                            contentColor = Color.White,
+                            shape = CircleShape,
+                            modifier = Modifier.size(56.dp),
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Agregar")
+                        }
+                    }
+
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.ReceiptLong, contentDescription = "Recetas") },
+                        label = { Text("Recetas") },
+                        selected = false,
+                        onClick = { /* TODO */ },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = PrimaryGreen,
+                            selectedTextColor = PrimaryGreen,
+                            indicatorColor = Color.Transparent,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray
+                        )
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
+                        label = { Text("Perfil") },
+                        selected = false,
+                        onClick = { /* TODO */ },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = PrimaryGreen,
+                            selectedTextColor = PrimaryGreen,
+                            indicatorColor = Color.Transparent,
                             unselectedIconColor = Color.Gray,
                             unselectedTextColor = Color.Gray
                         )
@@ -84,22 +131,24 @@ fun AppNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "despensa",
+            startDestination = "dashboard",
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) {
-            composable("despensa") {
-                DespensaScreen(
+            composable("dashboard") {
+                DashboardScreen(
                     viewModel = despensaViewModelCompartido,
-                    onAgregarClick = { navController.navigate("agregar") },
-                    onHistorialDesperdicioClick = { navController.navigate("historial_desperdicio") },
-                    onEditarClick = { idIngrediente ->
-                        navController.navigate("editar/$idIngrediente")
-                    },
-                    onVerDetalleClick = { idIngrediente ->
-                        navController.navigate("detalle_ingrediente/$idIngrediente")
-                    }
+                    onVerTodosClick = { navController.navigate("despensa_list") },
+                    onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") }
+                )
+            }
+            
+            composable("despensa_list") {
+                DespensaListScreen(
+                    viewModel = despensaViewModelCompartido,
+                    onBackClick = { navController.popBackStack() },
+                    onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") }
                 )
             }
 
@@ -139,13 +188,16 @@ fun AppNavigation() {
                     onEditarClick = { idIngrediente ->
                         navController.navigate("editar/$idIngrediente")
                     },
+                    onDescontarClick = { idIngrediente ->
+                        navController.navigate("descontar/$idIngrediente")
+                    },
                     onVerRecetaClick = { idReceta ->
                         navController.navigate("detalle_receta/$idReceta")
                     },
                     despensaViewModel = despensaViewModelCompartido
                 )
             }
-
+            
             composable(
                 route = "detalle_receta/{id}",
                 arguments = listOf(navArgument("id") { type = NavType.IntType })
@@ -157,15 +209,27 @@ fun AppNavigation() {
                 )
             }
 
-            composable("historial_desperdicio") {
-                HistorialDesperdicioScreen(
-                    viewModel = despensaViewModelCompartido,
-                    onVolver = { navController.popBackStack() }
+            composable(
+                route = "descontar/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getInt("id") ?: 0
+                DescontarCantidadScreen(
+                    ingredienteId = id,
+                    onVolver = { navController.popBackStack() },
+                    onDescontadoExitoso = {
+                        despensaViewModelCompartido.cargarIngredientes()
+                        navController.popBackStack()
+                    }
                 )
             }
 
             composable("lista_compras") {
                 ListaComprasScreen()
+            }
+            
+            composable("estadisticas") {
+                EstadisticasScreen()
             }
         }
     }

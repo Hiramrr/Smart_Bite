@@ -6,11 +6,13 @@ import io.github.jan.supabase.postgrest.postgrest
 
 class ListaComprasRepository {
 
-    suspend fun agregarArticulo(nombre: String, cantidadEsperada: String): Result<Unit> {
+    suspend fun agregarArticulo(nombre: String, cantidadEsperada: Double?, unidad: String?): Result<Unit> {
         return try {
             val nuevoArticulo = ArticuloCompra(
                 nombre = nombre,
-                cantidadEsperada = cantidadEsperada
+                cantidadEsperada = cantidadEsperada,
+                unidad = unidad,
+                estado = "Pendiente"
             )
 
             SupabaseClient.client.postgrest["lista_compras"]
