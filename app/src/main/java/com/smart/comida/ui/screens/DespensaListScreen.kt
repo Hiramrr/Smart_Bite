@@ -236,9 +236,40 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
             Text(ingrediente.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
             Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 14.sp, color = TextGray)
         }
-        
-        // Mocking days left
-        Text("2 días", color = OrangeExpiring, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-    }
+
+        // Cálculo de días reales
+        val diasRestantesText = if (!ingrediente.fechaCaducidad.isNullOrEmpty()) {
+            try {
+                val hoy = java.time.LocalDate.now()
+                val fechaCad = java.time.LocalDate.parse(ingrediente.fechaCaducidad)
+                val diff = java.time.temporal.ChronoUnit.DAYS.between(hoy, fechaCad)
+
+                when {
+                    diff < 0 -> "Caducado"
+                    diff == 0L -> "Caduca hoy"
+                    diff == 1L -> "1 día"
+                    else -> "$diff días"
+                }
+            } catch (e: Exception) {
+                ""
+            }
+        } else {
+            ""
+        }
+
+        if (diasRestantesText.isNotEmpty()) {
+            val textColor = when (diasRestantesText) {
+                "Caducado" -> Color.Red
+                "Caduca hoy" -> RedExpiring
+                else -> OrangeExpiring
+            }
+            Text(
+                text = diasRestantesText,
+                color = textColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        }
     Divider(color = BackgroundWhite)
 }
