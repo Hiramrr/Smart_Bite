@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -83,8 +84,13 @@ fun AgregarIngredienteScreen(
                     .background(LightGreen, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                // Mock avocado
-                Box(modifier = Modifier.size(80.dp).background(PrimaryGreen, CircleShape))
+                // Image icon placeholder
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = "Logo de imagen",
+                    tint = PrimaryGreen,
+                    modifier = Modifier.size(80.dp)
+                )
                 
                 // Camera icon fab
                 Box(
