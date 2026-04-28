@@ -1,295 +1,324 @@
 package com.smart.comida.ui.screens
 
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.smart.comida.ui.viewmodel.EditarIngredienteViewModel
-import com.smart.comida.ui.viewmodel.IngredienteUiState
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.smart.comida.ui.theme.*
+import com.smart.comida.ui.viewmodel.EditarIngredienteViewModel
+import com.smart.comida.ui.viewmodel.IngredienteUiState
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarIngredienteScreen(
-    ingredienteId: Int, // Recibimos el ID a editar
+    ingredienteId: Int,
     viewModel: EditarIngredienteViewModel = viewModel(),
     onVolver: () -> Unit = {},
     onGuardadoExitoso: () -> Unit
 ) {
-    var expandirCategoria by remember { mutableStateOf(false) }
-    var mostrarCalendario by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-    var expandirDropdownUnidad by remember { mutableStateOf(false) }
-    val opcionesUnidad = listOf("kg", "litros", "piezas", "gramos")
-
     val context = LocalContext.current
-    var imagenUri by remember { mutableStateOf<Uri?>(null) } // La NUEVA foto seleccionada
-
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> imagenUri = uri }
-    )
-
+    val scrollState = rememberScrollState()
     val uiState = viewModel.uiState
 
-    // Al abrir la pantalla, le decimos al ViewModel que descargue los datos
+    // Estados para menús y diálogos
+    var expandedCategoria by remember { mutableStateOf(false) }
+    var expandedUnidad by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var imagenUri by remember { mutableStateOf<Uri?>(null) }
+
+    val unidades = listOf("Kg", "Gramos", "Litros", "Piezas")
+
+    // Cargar datos al iniciar
     LaunchedEffect(ingredienteId) {
         viewModel.cargarDatos(ingredienteId)
     }
 
-    val formColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = LightYellow,
-        unfocusedBorderColor = Color(0xFF5A5A5C),
-        focusedContainerColor = DarkCardBackground,
-        unfocusedContainerColor = DarkCardBackground,
-        focusedTextColor = Color.White,
-        unfocusedTextColor = Color.White,
-        focusedLabelColor = LightYellow,
-        unfocusedLabelColor = Color(0xFFB3B3B3),
-        cursorColor = LightYellow,
-        disabledContainerColor = DarkCardBackground,
-        disabledTextColor = Color.White,
-        disabledBorderColor = Color(0xFF5A5A5C),
-        disabledLabelColor = Color(0xFFB3B3B3)
-    )
+    // Manejar éxito
+    LaunchedEffect(uiState) {
+        if (uiState is IngredienteUiState.Success) {
+            onGuardadoExitoso()
+            viewModel.resetState()
+        }
+    }
+
+    // Launcher para imagen
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> imagenUri = uri }
+
+    // DatePicker State
+    val datePickerState = rememberDatePickerState()
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+                            timeZone = TimeZone.getTimeZone("UTC")
+                        }
+                        viewModel.fechaCaducidad = sdf.format(Date(millis))
+                    }
+                    showDatePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = BackgroundWhite,
         topBar = {
             TopAppBar(
-                title = { Text("Editar ingrediente", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("Editar ingrediente", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkBackground,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = BackgroundWhite,
+                    titleContentColor = TextDark,
+                    navigationIconContentColor = TextDark
                 )
             )
+        },
+        bottomBar = {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (uiState is IngredienteUiState.Error) {
+                    Text(
+                        text = uiState.message,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                Button(
+                    onClick = {
+                        val imageBytes = imagenUri?.let { uri ->
+                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        }
+                        viewModel.guardarCambios(id = ingredienteId, imagenBytes = imageBytes)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = uiState !is IngredienteUiState.Loading
+                ) {
+                    if (uiState is IngredienteUiState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Actualizar ingrediente", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         if (uiState is IngredienteUiState.Loading && viewModel.nombre.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = LightYellow)
+                CircularProgressIndicator(color = PrimaryGreen)
             }
         } else {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.Start
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Actualiza la información del ingrediente",
-                    color = Color(0xFFB3B3B3),
-                    fontSize = 14.sp
-                )
-
+                // Image Picker
                 Box(
                     modifier = Modifier
-                        .size(128.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(DarkCardBackground)
-                        .clickable {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
+                        .size(150.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(LightGreen)
+                        .clickable { galleryLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (imagenUri != null) {
                         AsyncImage(
-                            model = imagenUri, contentDescription = "Nueva Foto",
-                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+                            model = imagenUri,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
                     } else if (!viewModel.imagenUrl.isNullOrEmpty()) {
                         AsyncImage(
-                            model = viewModel.imagenUrl, contentDescription = "Foto Actual",
-                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+                            model = viewModel.imagenUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Add, contentDescription = "Agregar foto",
-                            tint = Color(0xFFB3B3B3), modifier = Modifier.size(36.dp)
-                        )
+                        Icon(Icons.Default.Image, null, tint = PrimaryGreen, modifier = Modifier.size(80.dp))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-8).dp, y = (-8).dp)
+                            .size(40.dp)
+                            .background(Color.White, CircleShape)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CameraAlt, null, tint = TextDark, modifier = Modifier.size(20.dp))
                     }
                 }
 
-                OutlinedTextField(
+                FormTextField(
+                    label = "Nombre *",
                     value = viewModel.nombre,
                     onValueChange = { viewModel.nombre = it },
-                    label = { Text("Nombre del ingrediente *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = formColors
+                    placeholder = "Ej. Aguacate"
                 )
 
-                ExposedDropdownMenuBox(
-                    expanded = expandirCategoria,
-                    onExpandedChange = { expandirCategoria = !expandirCategoria },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = viewModel.categoriaSeleccionada?.nombre ?: "",
-                        onValueChange = {}, readOnly = true, label = { Text("Categoría (Opcional)") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirCategoria) },
-                        colors = formColors,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandirCategoria, onDismissRequest = { expandirCategoria = false }
-                    ) {
-                        viewModel.categorias.forEach { categoria ->
-                            DropdownMenuItem(
-                                text = { Text(categoria.nombre) },
-                                onClick = {
-                                    viewModel.categoriaSeleccionada = categoria
-                                    expandirCategoria = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    OutlinedTextField(
-                        value = viewModel.cantidad,
-                        onValueChange = {
-                            viewModel.cantidad = it
-                            // Si había un error previo, lo limpiamos al empezar a escribir de nuevo
-                            if (uiState is IngredienteUiState.Error) viewModel.resetState()
-                        },
-                        label = { Text("Cantidad *") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        isError = uiState is IngredienteUiState.Error && (viewModel.cantidad.toFloatOrNull() ?: -1f) < 0,
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = formColors
-                    )
-
+                // Selector de Categoría
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Categoría *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     ExposedDropdownMenuBox(
-                        expanded = expandirDropdownUnidad,
-                        onExpandedChange = { expandirDropdownUnidad = !expandirDropdownUnidad },
-                        modifier = Modifier.weight(1f)
+                        expanded = expandedCategoria,
+                        onExpandedChange = { expandedCategoria = it }
                     ) {
                         OutlinedTextField(
-                            value = viewModel.unidad, onValueChange = {}, readOnly = true, label = { Text("Unidad *") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirDropdownUnidad) },
-                            colors = formColors,
-                            modifier = Modifier.menuAnchor(),
-                            shape = RoundedCornerShape(16.dp)
+                            value = viewModel.categoriaSeleccionada?.nombre ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            placeholder = { Text("Seleccionar categoría", color = TextGray) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = GrayBorder,
+                                focusedBorderColor = PrimaryGreen,
+                                unfocusedContainerColor = CardWhite,
+                                focusedContainerColor = CardWhite
+                            )
                         )
                         ExposedDropdownMenu(
-                            expanded = expandirDropdownUnidad, onDismissRequest = { expandirDropdownUnidad = false }
+                            expanded = expandedCategoria,
+                            onDismissRequest = { expandedCategoria = false }
                         ) {
-                            opcionesUnidad.forEach { seleccion ->
+                            viewModel.categorias.forEach { cat ->
                                 DropdownMenuItem(
-                                    text = { Text(seleccion) },
-                                    onClick = { viewModel.unidad = seleccion; expandirDropdownUnidad = false }
+                                    text = { Text(cat.nombre) },
+                                    onClick = {
+                                        viewModel.categoriaSeleccionada = cat
+                                        expandedCategoria = false
+                                    }
                                 )
                             }
                         }
                     }
                 }
 
-                OutlinedTextField(
-                    value = viewModel.fechaCaducidad, onValueChange = { }, readOnly = true,
-                    label = { Text("Fecha de Caducidad") },
-                    modifier = Modifier.fillMaxWidth().clickable { mostrarCalendario = true },
-                    enabled = false,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = formColors
-                )
-
-                if (mostrarCalendario) {
-                    DatePickerDialog(
-                        onDismissRequest = { mostrarCalendario = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                datePickerState.selectedDateMillis?.let { millis ->
-                                    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-
-                                    formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
-
-                                    viewModel.fechaCaducidad = formatter.format(Date(millis))
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        FormTextField(
+                            label = "Cantidad *",
+                            value = viewModel.cantidad,
+                            onValueChange = { viewModel.cantidad = it },
+                            placeholder = "Ej. 2",
+                            keyboardType = KeyboardType.Number
+                        )
+                    }
+                    // Selector de Unidad
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Unidad *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        ExposedDropdownMenuBox(
+                            expanded = expandedUnidad,
+                            onExpandedChange = { expandedUnidad = it }
+                        ) {
+                            OutlinedTextField(
+                                value = viewModel.unidad,
+                                onValueChange = {},
+                                readOnly = true,
+                                placeholder = { Text("Unidad", color = TextGray) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnidad) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = GrayBorder,
+                                    focusedBorderColor = PrimaryGreen,
+                                    unfocusedContainerColor = CardWhite,
+                                    focusedContainerColor = CardWhite
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedUnidad,
+                                onDismissRequest = { expandedUnidad = false }
+                            ) {
+                                unidades.forEach { u ->
+                                    DropdownMenuItem(
+                                        text = { Text(u) },
+                                        onClick = {
+                                            viewModel.unidad = u
+                                            expandedUnidad = false
+                                        }
+                                    )
                                 }
-                                mostrarCalendario = false
-                            }) { Text("Aceptar") }
-                        },
-                        dismissButton = { TextButton(onClick = { mostrarCalendario = false }) { Text("Cancelar") } }
-                    ) { DatePicker(state = datePickerState) }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                when (uiState) {
-                    is IngredienteUiState.Loading -> CircularProgressIndicator(color = LightYellow)
-                    is IngredienteUiState.Error -> Text(text = uiState.message, color = MaterialTheme.colorScheme.error)
-                    is IngredienteUiState.Success -> {
-                        LaunchedEffect(Unit) {
-                            onGuardadoExitoso()
-                            viewModel.resetState()
+                            }
                         }
                     }
-                    is IngredienteUiState.Idle -> { }
                 }
 
-                Button(
-                    onClick = {
-                        val bytesDeImagen = imagenUri?.let { uri ->
-                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        }
-                        viewModel.guardarCambios(id = ingredienteId, imagenBytes = bytesDeImagen)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = LightYellow,
-                        contentColor = Color.Black,
-                        disabledContainerColor = LightYellow.copy(alpha = 0.5f)
-                    ),
-                    enabled = uiState !is IngredienteUiState.Loading
-                ) {
-                    Text("Actualizar ingrediente", fontWeight = FontWeight.Bold)
+                // Selector de Fecha
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Fecha de caducidad", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    OutlinedTextField(
+                        value = viewModel.fechaCaducidad,
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = { Text("Seleccionar fecha", color = TextGray) },
+                        trailingIcon = { 
+                            IconButton(onClick = { showDatePicker = true }) {
+                                Icon(Icons.Default.CalendarToday, null, tint = TextGray)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = GrayBorder,
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedContainerColor = CardWhite,
+                            focusedContainerColor = CardWhite
+                        )
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
