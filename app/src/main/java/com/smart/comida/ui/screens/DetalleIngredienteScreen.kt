@@ -122,8 +122,9 @@ fun DetalleIngredienteScreen(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(ingrediente.nombre, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 
+                val categoriaNombre = despensaViewModel.categorias.find { it.id == ingrediente.categoriaId }?.nombre ?: "Sin categoría"
                 Surface(color = LightBlue, shape = RoundedCornerShape(16.dp)) {
-                    Text("Lácteos", color = BlueText, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    Text(categoriaNombre, color = BlueText, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                 }
             }
 
@@ -136,8 +137,40 @@ fun DetalleIngredienteScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Vence el", color = TextGray, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("20/05/2024", color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Text("(2 días)", color = RedExpiring, fontSize = 12.sp)
+                    
+                    val fechaFormateada = if (!ingrediente.fechaCaducidad.isNullOrEmpty()) {
+                        try {
+                            val fecha = java.time.LocalDate.parse(ingrediente.fechaCaducidad)
+                            val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                            fecha.format(formatter)
+                        } catch (e: Exception) {
+                            ingrediente.fechaCaducidad
+                        }
+                    } else "Sin fecha"
+                    
+                    Text(fechaFormateada, color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    
+                    // Cálculo de días restantes
+                    if (!ingrediente.fechaCaducidad.isNullOrEmpty()) {
+                        val caducidadData = try {
+                            val hoy = java.time.LocalDate.now()
+                            val fechaCad = java.time.LocalDate.parse(ingrediente.fechaCaducidad)
+                            val diff = java.time.temporal.ChronoUnit.DAYS.between(hoy, fechaCad)
+                            
+                            when {
+                                diff < 0 -> "Caducado" to Color.Red
+                                diff == 0L -> "Caduca hoy" to RedExpiring
+                                diff == 1L -> "Caduca mañana" to OrangeExpiring
+                                else -> "($diff días)" to OrangeExpiring
+                            }
+                        } catch (e: Exception) {
+                            null
+                        }
+
+                        caducidadData?.let { (texto, color) ->
+                            Text(text = texto, color = color, fontSize = 12.sp)
+                        }
+                    }
                 }
             }
 
