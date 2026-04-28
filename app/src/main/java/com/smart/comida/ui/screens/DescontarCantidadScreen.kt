@@ -59,10 +59,10 @@ fun DescontarCantidadScreen(
         }
     }
 
-    // Determinar opciones de unidades basadas en la unidad original
-    val opcionesUnidades = when (ing?.unidad) {
-        "Kg" -> listOf("Kg", "Gramos")
-        "Litros" -> listOf("Litros", "ml")
+    // Determinar opciones de unidades basadas en la unidad original (sin importar mayúsculas)
+    val opcionesUnidades = when (ing?.unidad?.lowercase()) {
+        "kg", "gramos" -> listOf("Kg", "Gramos")
+        "litros", "litro", "ml" -> listOf("Litros", "ml")
         else -> listOf(ing?.unidad ?: "Piezas")
     }
 
@@ -162,34 +162,39 @@ fun DescontarCantidadScreen(
                         )
                     )
                     
-                    // Dropdown de Unidades Inteligente
+                    // Dropdown de Unidades Inteligente (Exposed Dropdown Menu)
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = unidadSeleccionada,
-                            onValueChange = { },
-                            readOnly = true,
-                            trailingIcon = { Icon(Icons.Default.KeyboardArrowDown, null) },
-                            modifier = Modifier.fillMaxWidth().clickable { expandedUnidades = true },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = GrayBorder,
-                                focusedBorderColor = PrimaryGreen,
-                                unfocusedContainerColor = CardWhite,
-                                focusedContainerColor = CardWhite
-                            )
-                        )
-                        DropdownMenu(
+                        ExposedDropdownMenuBox(
                             expanded = expandedUnidades,
-                            onDismissRequest = { expandedUnidades = false }
+                            onExpandedChange = { expandedUnidades = it }
                         ) {
-                            opcionesUnidades.forEach { u ->
-                                DropdownMenuItem(
-                                    text = { Text(u) },
-                                    onClick = {
-                                        unidadSeleccionada = u
-                                        expandedUnidades = false
-                                    }
+                            OutlinedTextField(
+                                value = unidadSeleccionada,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnidades) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = GrayBorder,
+                                    focusedBorderColor = PrimaryGreen,
+                                    unfocusedContainerColor = CardWhite,
+                                    focusedContainerColor = CardWhite
                                 )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedUnidades,
+                                onDismissRequest = { expandedUnidades = false }
+                            ) {
+                                opcionesUnidades.forEach { u ->
+                                    DropdownMenuItem(
+                                        text = { Text(u) },
+                                        onClick = {
+                                            unidadSeleccionada = u
+                                            expandedUnidades = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
