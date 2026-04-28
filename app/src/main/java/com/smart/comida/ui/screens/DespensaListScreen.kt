@@ -9,7 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
@@ -37,6 +39,7 @@ fun DespensaListScreen(
 ) {
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
+    var expandirCaducidad by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = BackgroundWhite,
@@ -70,12 +73,16 @@ fun DespensaListScreen(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 item {
                     FilterChip(
-                        selected = viewModel.filtroSeleccionado == null,
-                        onClick = { viewModel.seleccionarFiltroCategoria(null) },
+                        selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null,
+                        onClick = { 
+                            viewModel.seleccionarFiltroCategoria(null) 
+                            viewModel.seleccionarFiltroCaducidad(null)
+                        },
                         label = { Text("Todos") },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PrimaryGreen,
@@ -83,10 +90,73 @@ fun DespensaListScreen(
                             containerColor = BackgroundWhite,
                             labelColor = TextGray
                         ),
-                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.filtroSeleccionado == null, borderColor = GrayBorder),
+                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null, borderColor = GrayBorder),
                         shape = CircleShape
                     )
                 }
+                
+                // Filtro de Caducidad
+                item {
+                    Box {
+                        FilterChip(
+                            selected = viewModel.diasFiltroCaducidad != null,
+                            onClick = { expandirCaducidad = true },
+                            label = { 
+                                Text(if (viewModel.diasFiltroCaducidad != null) "Caducan: ${viewModel.diasFiltroCaducidad}d" else "Caducidad") 
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.AccessTime,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFD47979),
+                                selectedLabelColor = Color.White,
+                                selectedLeadingIconColor = Color.White,
+                                selectedTrailingIconColor = Color.White,
+                                containerColor = BackgroundWhite,
+                                labelColor = TextGray
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.diasFiltroCaducidad != null, borderColor = GrayBorder),
+                            shape = CircleShape
+                        )
+                        
+                        DropdownMenu(
+                            expanded = expandirCaducidad,
+                            onDismissRequest = { expandirCaducidad = false }
+                        ) {
+                            listOf(3, 5, 7).forEach { dias ->
+                                DropdownMenuItem(
+                                    text = { Text("Próximos $dias días") },
+                                    onClick = {
+                                        viewModel.seleccionarFiltroCaducidad(dias)
+                                        expandirCaducidad = false
+                                    }
+                                )
+                            }
+                            if (viewModel.diasFiltroCaducidad != null) {
+                                Divider()
+                                DropdownMenuItem(
+                                    text = { Text("Quitar filtro") },
+                                    onClick = {
+                                        viewModel.seleccionarFiltroCaducidad(null)
+                                        expandirCaducidad = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 items(categorias) { categoria ->
                     val isSelected = viewModel.filtroSeleccionado?.id == categoria.id
                     FilterChip(
@@ -118,13 +188,19 @@ fun DespensaListScreen(
                     }
                 }
                 is DespensaUiState.Success -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(uiState.ingredientes) { ingrediente ->
-                            IngredienteListItem(ingrediente = ingrediente, onClick = { ingrediente.id?.let(onVerDetalleClick) })
+                    if (uiState.ingredientes.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No se encontraron ingredientes.", color = TextGray)
+                        }
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(uiState.ingredientes) { ingrediente ->
+                                IngredienteListItem(ingrediente = ingrediente, onClick = { ingrediente.id?.let(onVerDetalleClick) })
+                            }
                         }
                     }
                 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -50,7 +51,6 @@ fun DespensaScreen(
 ) {
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
-    var searchQuery by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Estado para el diálogo de confirmación
@@ -142,8 +142,8 @@ fun DespensaScreen(
 
             item {
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    value = viewModel.searchQuery,
+                    onValueChange = { viewModel.actualizarBusqueda(it) },
                     placeholder = { Text("Buscar ingredientes", color = Color.Gray, fontSize = 16.sp) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray) },
                     modifier = Modifier
@@ -193,9 +193,22 @@ fun DespensaScreen(
                             FilterChip(
                                 selected = viewModel.diasFiltroCaducidad != null,
                                 onClick = { expandirCaducidad = true },
-                                label = { Text(if (viewModel.diasFiltroCaducidad != null) "Caducan: ${viewModel.diasFiltroCaducidad} días" else "Filtrar por caducidad", color = Color.White) },
+                                label = { 
+                                    Text(
+                                        text = if (viewModel.diasFiltroCaducidad != null) "Caducan: ${viewModel.diasFiltroCaducidad} días" else "Caducidad", 
+                                        color = Color.White
+                                    ) 
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        Icons.Default.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFFD47979), // Un color rojizo para caducidad
+                                    selectedContainerColor = Color(0xFFD47979),
                                     containerColor = DarkCardBackground
                                 ),
                                 shape = CircleShape,
@@ -216,14 +229,16 @@ fun DespensaScreen(
                                         }
                                     )
                                 }
-                                Divider(color = Color.Gray.copy(alpha = 0.5f))
-                                DropdownMenuItem(
-                                    text = { Text("Quitar filtro", color = Color.White) },
-                                    onClick = {
-                                        viewModel.seleccionarFiltroCaducidad(null)
-                                        expandirCaducidad = false
-                                    }
-                                )
+                                if (viewModel.diasFiltroCaducidad != null) {
+                                    Divider(color = Color.Gray.copy(alpha = 0.5f))
+                                    DropdownMenuItem(
+                                        text = { Text("Quitar filtro", color = Color.White) },
+                                        onClick = {
+                                            viewModel.seleccionarFiltroCaducidad(null)
+                                            expandirCaducidad = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -253,18 +268,37 @@ fun DespensaScreen(
                 }
                 is DespensaUiState.Error -> {
                     item {
-                        Text(text = uiState.message, color = MaterialTheme.colorScheme.error)
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = uiState.message, color = Color.Red, fontSize = 16.sp)
+                            Button(
+                                onClick = { viewModel.cargarIngredientes() },
+                                colors = ButtonDefaults.buttonColors(containerColor = GreenAccent)
+                            ) {
+                                Text("Reintentar")
+                            }
+                        }
                     }
                 }
                 is DespensaUiState.Success -> {
-                    val ingredientes = uiState.ingredientes.filter {
-                        it.nombre.contains(searchQuery, ignoreCase = true)
-                    }
+                    val ingredientes = uiState.ingredientes
                     val categoriasPorId = categorias.associateBy { it.id }
 
                     if (ingredientes.isEmpty()) {
                         item {
-                            Text("No se encontraron ingredientes.", color = Color.Gray, modifier = Modifier.padding(horizontal = 24.dp))
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "No se encontraron ingredientes para este filtro.", 
+                                    color = Color.Gray,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     } else {
                         val lowStock = ingredientes.filter { it.cantidad <= 5 }
@@ -305,7 +339,7 @@ fun DespensaScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Agregados Recientemente", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                    Text("Inventario Activo", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                                     Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Ver Todo", tint = Color.Gray)
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
