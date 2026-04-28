@@ -1,6 +1,11 @@
 package com.smart.comida.ui.screens
 
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -8,29 +13,92 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.smart.comida.ui.theme.*
+import com.smart.comida.ui.viewmodel.IngredienteUiState
+import com.smart.comida.ui.viewmodel.IngredienteViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgregarIngredienteScreen(
     onVolver: () -> Unit,
-    onGuardadoExitoso: () -> Unit
+    onGuardadoExitoso: () -> Unit,
+    viewModel: IngredienteViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
+    
+    // Estados del formulario
+    var nombre by remember { mutableStateOf("") }
+    var categoriaSeleccionada by remember { mutableStateOf<com.smart.comida.data.model.Categoria?>(null) }
+    var cantidad by remember { mutableStateOf("") }
+    var unidad by remember { mutableStateOf("") }
+    var fechaCaducidad by remember { mutableStateOf("") }
+    var notas by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Estados para menús y diálogos
+    var expandedCategoria by remember { mutableStateOf(false) }
+    var expandedUnidad by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val unidades = listOf("Kg", "Gramos", "Litros", "Piezas")
+
+    // Cargar categorías al iniciar
+    LaunchedEffect(Unit) {
+        viewModel.cargarCategorias()
+    }
+
+    // Manejar estados del ViewModel
+    LaunchedEffect(viewModel.uiState) {
+        if (viewModel.uiState is IngredienteUiState.Success) {
+            onGuardadoExitoso()
+            viewModel.resetState()
+        }
+    }
+
+    // Launcher para imagen
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> imageUri = uri }
+
+    // DatePicker State
+    val datePickerState = rememberDatePickerState()
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        fechaCaducidad = sdf.format(Date(millis))
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Scaffold(
         containerColor = BackgroundWhite,
@@ -43,7 +111,7 @@ fun AgregarIngredienteScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* OCR */ }) {
+                    IconButton(onClick = { /* OCR Placeholder */ }) {
                         Icon(Icons.Default.ReceiptLong, contentDescription = "Escanear ticket")
                     }
                 },
@@ -56,14 +124,37 @@ fun AgregarIngredienteScreen(
             )
         },
         bottomBar = {
-            PaddingValues(16.dp).let { padding ->
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (viewModel.uiState is IngredienteUiState.Error) {
+                    Text(
+                        text = (viewModel.uiState as IngredienteUiState.Error).message,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
                 Button(
-                    onClick = onGuardadoExitoso,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
+                    onClick = {
+                        val imageBytes = imageUri?.let { uriToByteArray(context, it) }
+                        viewModel.guardarIngrediente(
+                            nombre = nombre,
+                            cantidadStr = cantidad,
+                            unidad = unidad,
+                            fechaCaducidad = fechaCaducidad,
+                            categoriaId = categoriaSeleccionada?.id,
+                            imagenBytes = imageBytes
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = viewModel.uiState !is IngredienteUiState.Loading
                 ) {
-                    Text("Guardar ingrediente", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (viewModel.uiState is IngredienteUiState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Guardar ingrediente", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -77,58 +168,162 @@ fun AgregarIngredienteScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Image Placeholder
+            // Image Picker
             Box(
                 modifier = Modifier
                     .size(150.dp)
-                    .background(LightGreen, RoundedCornerShape(24.dp)),
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(LightGreen)
+                    .clickable { galleryLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                // Image icon placeholder
-                Icon(
-                    imageVector = Icons.Default.Image,
-                    contentDescription = "Logo de imagen",
-                    tint = PrimaryGreen,
-                    modifier = Modifier.size(80.dp)
-                )
-                
-                // Camera icon fab
+                if (imageUri != null) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(Icons.Default.Image, null, tint = PrimaryGreen, modifier = Modifier.size(80.dp))
+                }
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .offset(x = 8.dp, y = 8.dp)
+                        .offset(x = (-8).dp, y = (-8).dp)
                         .size(40.dp)
-                        .background(Color.White, CircleShape),
+                        .background(Color.White, CircleShape)
+                        .padding(8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = "Tomar foto", tint = TextDark, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.CameraAlt, null, tint = TextDark, modifier = Modifier.size(20.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            FormTextField(
+                label = "Nombre *",
+                value = nombre,
+                onValueChange = { nombre = it },
+                placeholder = "Ej. Aguacate"
+            )
 
-            FormTextField(label = "Nombre *", placeholder = "Ej. Aguacate")
-            
-            FormTextField(label = "Categoría *", placeholder = "Seleccionar categoría", readOnly = true)
+            // Selector de Categoría
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Categoría *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                ExposedDropdownMenuBox(
+                    expanded = expandedCategoria,
+                    onExpandedChange = { expandedCategoria = it }
+                ) {
+                    OutlinedTextField(
+                        value = categoriaSeleccionada?.nombre ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = { Text("Seleccionar categoría", color = TextGray) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = GrayBorder,
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedContainerColor = CardWhite,
+                            focusedContainerColor = CardWhite
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedCategoria,
+                        onDismissRequest = { expandedCategoria = false }
+                    ) {
+                        viewModel.categorias.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat.nombre) },
+                                onClick = {
+                                    categoriaSeleccionada = cat
+                                    expandedCategoria = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(modifier = Modifier.weight(1f)) {
-                    FormTextField(label = "Cantidad *", placeholder = "Ej. 2", keyboardType = KeyboardType.Number)
+                    FormTextField(
+                        label = "Cantidad *",
+                        value = cantidad,
+                        onValueChange = { cantidad = it },
+                        placeholder = "Ej. 2",
+                        keyboardType = KeyboardType.Number
+                    )
                 }
-                Box(modifier = Modifier.weight(1f)) {
-                    FormTextField(label = "Unidad *", placeholder = "Seleccionar", readOnly = true)
+                // Selector de Unidad
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Unidad *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    ExposedDropdownMenuBox(
+                        expanded = expandedUnidad,
+                        onExpandedChange = { expandedUnidad = it }
+                    ) {
+                        OutlinedTextField(
+                            value = unidad,
+                            onValueChange = {},
+                            readOnly = true,
+                            placeholder = { Text("Unidad", color = TextGray) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnidad) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = GrayBorder,
+                                focusedBorderColor = PrimaryGreen,
+                                unfocusedContainerColor = CardWhite,
+                                focusedContainerColor = CardWhite
+                            )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedUnidad,
+                            onDismissRequest = { expandedUnidad = false }
+                        ) {
+                            unidades.forEach { u ->
+                                DropdownMenuItem(
+                                    text = { Text(u) },
+                                    onClick = {
+                                        unidad = u
+                                        expandedUnidad = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
-            FormTextField(
-                label = "Fecha de caducidad *",
-                placeholder = "Seleccionar fecha",
-                readOnly = true,
-                trailingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null, tint = TextGray) }
-            )
+            // Selector de Fecha
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Fecha de caducidad *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                OutlinedTextField(
+                    value = fechaCaducidad,
+                    onValueChange = {},
+                    readOnly = true,
+                    placeholder = { Text("Seleccionar fecha", color = TextGray) },
+                    trailingIcon = { 
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.CalendarToday, null, tint = TextGray)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = GrayBorder,
+                        focusedBorderColor = PrimaryGreen,
+                        unfocusedContainerColor = CardWhite,
+                        focusedContainerColor = CardWhite
+                    )
+                )
+            }
 
             FormTextField(
                 label = "Notas (opcional)",
+                value = notas,
+                onValueChange = { notas = it },
                 placeholder = "Añade notas...",
                 singleLine = false,
                 modifier = Modifier.height(100.dp)
@@ -139,9 +334,20 @@ fun AgregarIngredienteScreen(
     }
 }
 
+// Función auxiliar para convertir Uri a ByteArray
+fun uriToByteArray(context: Context, uri: Uri): ByteArray? {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+    } catch (e: Exception) {
+        null
+    }
+}
+
 @Composable
 fun FormTextField(
     label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
     placeholder: String,
     readOnly: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
@@ -152,8 +358,8 @@ fun FormTextField(
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(label, color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         OutlinedTextField(
-            value = "",
-            onValueChange = { },
+            value = value,
+            onValueChange = onValueChange,
             readOnly = readOnly,
             placeholder = { Text(placeholder, color = TextGray, fontSize = 14.sp) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
