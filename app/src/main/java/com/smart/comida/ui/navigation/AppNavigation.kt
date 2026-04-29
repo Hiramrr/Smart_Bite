@@ -1,6 +1,7 @@
 package com.smart.comida.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -13,7 +14,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -27,16 +31,35 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smart.comida.ui.screens.*
 import com.smart.comida.ui.theme.PrimaryGreen
+import com.smart.comida.ui.viewmodel.AuthViewModel
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import com.smart.comida.ui.viewmodel.ThemeViewModel
 
 @Composable
-fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
+fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: AuthViewModel = viewModel()) {
     val navController = rememberNavController()
     val despensaViewModelCompartido: DespensaViewModel = viewModel()
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsState()
+
+    LaunchedEffect(isUserLoggedIn) {
+        if (isUserLoggedIn == false && currentRoute != "login") {
+            navController.navigate("login") {
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
+    if (isUserLoggedIn == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -54,7 +77,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
                         selected = currentRoute == "dashboard" || currentRoute == "despensa_list",
                         onClick = {
                             navController.navigate("dashboard") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                popUpTo("dashboard") { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -73,7 +96,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
                         selected = currentRoute == "lista_compras",
                         onClick = {
                             navController.navigate("lista_compras") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                popUpTo("dashboard") { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -107,7 +130,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
                         selected = currentRoute == "recetas",
                         onClick = {
                             navController.navigate("recetas") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                popUpTo("dashboard") { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -126,7 +149,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
                         selected = currentRoute == "settings",
                         onClick = {
                             navController.navigate("settings") {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                popUpTo("dashboard") { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -145,14 +168,27 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "dashboard",
+            startDestination = if (isUserLoggedIn == true) "dashboard" else "login",
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(if (currentRoute == "login") androidx.compose.foundation.layout.PaddingValues(0.dp) else innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) {
+            composable("login") {
+                LoginScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = {
+                        navController.navigate("dashboard") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable("dashboard") {
+                val userName by authViewModel.userName.collectAsState()
                 DashboardScreen(
                     viewModel = despensaViewModelCompartido,
+                    userName = userName ?: "Usuario",
                     onVerTodosClick = { navController.navigate("despensa_list") },
                     onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") }
                 )
@@ -249,7 +285,8 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
             composable("settings") {
                 SettingsScreen(
                     onVolver = { navController.popBackStack() },
-                    themeViewModel = themeViewModel
+                    themeViewModel = themeViewModel,
+                    onSignOut = { authViewModel.signOut() }
                 )
             }
 

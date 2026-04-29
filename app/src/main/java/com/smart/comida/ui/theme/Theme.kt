@@ -61,8 +61,8 @@ fun ComidaTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            val statusBarColor = if (darkTheme) BackgroundDark.toArgb() else BackgroundWhite.toArgb()
-            val navBarColor = if (darkTheme) BackgroundDark.toArgb() else BackgroundWhite.toArgb()
+            val statusBarColor = Color.Transparent.toArgb()
+            val navBarColor = Color.Transparent.toArgb()
             window.statusBarColor = statusBarColor
             window.navigationBarColor = navBarColor
 

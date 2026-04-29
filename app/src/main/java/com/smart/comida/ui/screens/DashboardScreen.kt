@@ -42,6 +42,7 @@ import com.smart.comida.ui.viewmodel.DespensaViewModel
 @Composable
 fun DashboardScreen(
     viewModel: DespensaViewModel,
+    userName: String = "Usuario",
     onVerTodosClick: () -> Unit,
     onVerDetalleClick: (Int) -> Unit
 ) {
@@ -88,7 +89,7 @@ fun DashboardScreen(
         ) {
             // Greeting section
             Column {
-                Text("¡Hola, Usuario! 👋", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+                Text("¡Hola, $userName! 👋", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
                 Text("¿Qué vamos a cocinar hoy?", fontSize = 16.sp, color = colorScheme.onSurfaceVariant)
             }
 

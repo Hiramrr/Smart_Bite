@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,7 +20,8 @@ import com.smart.comida.ui.viewmodel.ThemeViewModel
 @Composable
 fun SettingsScreen(
     onVolver: () -> Unit,
-    themeViewModel: ThemeViewModel
+    themeViewModel: ThemeViewModel,
+    onSignOut: () -> Unit
 ) {
     val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
@@ -52,6 +54,15 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Appearance section
+            Text(
+                text = "Apariencia",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryGreen,
+                modifier = Modifier.padding(start = 8.dp, top = 8.dp)
+            )
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -98,6 +109,69 @@ fun SettingsScreen(
                             checkedTrackColor = LightGreen
                         )
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Account section
+            Text(
+                text = "Cuenta",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryGreen,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = null,
+                            tint = RedExpiring,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Column {
+                            Text(
+                                "Cerrar sesión",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Salir de tu cuenta actual",
+                                fontSize = 14.sp,
+                                color = TextGray
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = onSignOut,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = RedExpiring.copy(alpha = 0.15f),
+                            contentColor = RedExpiring
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    ) {
+                        Text("Salir", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
