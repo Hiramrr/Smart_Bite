@@ -39,7 +39,7 @@ fun AppNavigation() {
 
     Scaffold(
         bottomBar = {
-            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas")
+            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas", "recetas")
             if (showBottomBar) {
                 NavigationBar(
                     containerColor = Color.White,
@@ -102,8 +102,14 @@ fun AppNavigation() {
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = "Recetas") },
                         label = { Text("Recetas") },
-                        selected = false,
-                        onClick = { /* TODO */ },
+                        selected = currentRoute == "recetas",
+                        onClick = {
+                            navController.navigate("recetas") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PrimaryGreen,
                             selectedTextColor = PrimaryGreen,
@@ -230,6 +236,13 @@ fun AppNavigation() {
             
             composable("estadisticas") {
                 EstadisticasScreen()
+            }
+
+            composable("recetas") {
+                RecipeListScreen(
+                    onVolver = { navController.popBackStack() },
+                    onRecetaClick = { id -> navController.navigate("detalle_receta/$id") }
+                )
             }
         }
     }

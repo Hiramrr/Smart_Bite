@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.Tune
@@ -58,6 +59,12 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Mi Despensa", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
                 actions = {
+                    IconButton(onClick = { viewModel.cargarIngredientes() }) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Refrescar"
+                        )
+                    }
                     IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.Notifications, contentDescription = "Notificaciones")
                     }
@@ -158,9 +165,27 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ResumenItem("24", "Ingredientes", LightGreen, PrimaryGreen, Icons.Default.Kitchen)
-                        ResumenItem("6", "Por vencer", LightOrange, OrangeExpiring, Icons.Default.Warning)
-                        ResumenItem("3", "Bajos en stock", LightPurple, PurpleAccent, Icons.Default.TrendingDown)
+                        ResumenItem(
+                            viewModel.resumen.total.toString(),
+                            "Ingredientes",
+                            LightGreen,
+                            PrimaryGreen,
+                            Icons.Default.Kitchen
+                        )
+                        ResumenItem(
+                            viewModel.resumen.porVencer.toString(),
+                            "Por vencer",
+                            LightOrange,
+                            OrangeExpiring,
+                            Icons.Default.Warning
+                        )
+                        ResumenItem(
+                            viewModel.resumen.bajosStock.toString(),
+                            "Bajos en stock",
+                            LightPurple,
+                            PurpleAccent,
+                            Icons.Default.TrendingDown
+                        )
                     }
                 }
             }
@@ -178,7 +203,11 @@ fun DashboardScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Buen momento para comprar \uD83D\uDED2", fontWeight = FontWeight.Bold, color = PrimaryGreen)
-                        Text("Tienes 6 ingredientes por vencer en los próximos 7 días.", fontSize = 12.sp, color = PrimaryGreen)
+                        Text(
+                            "Tienes ${viewModel.resumen.porVencer} ingredientes por vencer en los próximos 7 días.",
+                            fontSize = 12.sp,
+                            color = PrimaryGreen
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = onVerTodosClick,

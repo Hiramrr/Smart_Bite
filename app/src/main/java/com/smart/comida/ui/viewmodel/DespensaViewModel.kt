@@ -38,6 +38,12 @@ class DespensaViewModel : ViewModel() {
     var searchQuery by mutableStateOf("")
         private set
 
+    // Resumen del Dashboard
+    var resumen by mutableStateOf(ResumenDespensa(0, 0, 0))
+        private set
+
+    data class ResumenDespensa(val total: Int, val porVencer: Int, val bajosStock: Int)
+
     init {
         // Al nacer el ViewModel, descargamos las categorías para los botones
         viewModelScope.launch {
@@ -50,11 +56,31 @@ class DespensaViewModel : ViewModel() {
         viewModelScope.launch {
             repository.obtenerIngredientes().onSuccess { lista ->
                 todosLosIngredientes = lista
+                actualizarResumen()
                 aplicarFiltros() // Mostramos la lista aplicando el filtro actual
             }.onFailure { error ->
                 uiState = DespensaUiState.Error("Error al cargar: ${error.message}")
             }
         }
+    }
+
+    private fun actualizarResumen() {
+        val hoy = java.time.LocalDate.now()
+        val fechaLimite = hoy.plusDays(7)
+
+        val total = todosLosIngredientes.size
+        val porVencer = todosLosIngredientes.count {
+            if (it.fechaCaducidad.isNullOrEmpty()) false
+            else {
+                try {
+                    val fecha = java.time.LocalDate.parse(it.fechaCaducidad)
+                    !fecha.isBefore(hoy) && !fecha.isAfter(fechaLimite)
+                } catch (e: Exception) { false }
+            }
+        }
+        val bajosStock = todosLosIngredientes.count { it.cantidad <= 2f }
+
+        resumen = ResumenDespensa(total, porVencer, bajosStock)
     }
 
     // Asegúrate de pedir la imagenUrl como parámetro
