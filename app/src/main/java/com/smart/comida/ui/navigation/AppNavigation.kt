@@ -8,8 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,9 +28,10 @@ import androidx.navigation.navArgument
 import com.smart.comida.ui.screens.*
 import com.smart.comida.ui.theme.PrimaryGreen
 import com.smart.comida.ui.viewmodel.DespensaViewModel
+import com.smart.comida.ui.viewmodel.ThemeViewModel
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(themeViewModel: ThemeViewModel = viewModel()) {
     val navController = rememberNavController()
     val despensaViewModelCompartido: DespensaViewModel = viewModel()
     
@@ -39,11 +40,12 @@ fun AppNavigation() {
 
     Scaffold(
         bottomBar = {
-            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas", "recetas")
+            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas", "recetas", "settings")
             if (showBottomBar) {
+                val colorScheme = MaterialTheme.colorScheme
                 NavigationBar(
-                    containerColor = Color.White,
-                    contentColor = Color.Gray,
+                    containerColor = colorScheme.surface,
+                    contentColor = colorScheme.onSurfaceVariant,
                     tonalElevation = 8.dp
                 ) {
                     NavigationBarItem(
@@ -61,8 +63,8 @@ fun AppNavigation() {
                             selectedIconColor = PrimaryGreen,
                             selectedTextColor = PrimaryGreen,
                             indicatorColor = Color.Transparent,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray
+                            unselectedIconColor = colorScheme.onSurfaceVariant,
+                            unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
                     NavigationBarItem(
@@ -80,8 +82,8 @@ fun AppNavigation() {
                             selectedIconColor = PrimaryGreen,
                             selectedTextColor = PrimaryGreen,
                             indicatorColor = Color.Transparent,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray
+                            unselectedIconColor = colorScheme.onSurfaceVariant,
+                            unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
                     
@@ -114,21 +116,27 @@ fun AppNavigation() {
                             selectedIconColor = PrimaryGreen,
                             selectedTextColor = PrimaryGreen,
                             indicatorColor = Color.Transparent,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray
+                            unselectedIconColor = colorScheme.onSurfaceVariant,
+                            unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                        label = { Text("Perfil") },
-                        selected = false,
-                        onClick = { /* TODO */ },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Configuración") },
+                        label = { Text("Configuración") },
+                        selected = currentRoute == "settings",
+                        onClick = {
+                            navController.navigate("settings") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PrimaryGreen,
                             selectedTextColor = PrimaryGreen,
                             indicatorColor = Color.Transparent,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray
+                            unselectedIconColor = colorScheme.onSurfaceVariant,
+                            unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -236,6 +244,13 @@ fun AppNavigation() {
             
             composable("estadisticas") {
                 EstadisticasScreen()
+            }
+
+            composable("settings") {
+                SettingsScreen(
+                    onVolver = { navController.popBackStack() },
+                    themeViewModel = themeViewModel
+                )
             }
 
             composable("recetas") {

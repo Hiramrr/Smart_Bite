@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,8 +52,10 @@ fun DashboardScreen(
         viewModel.cargarIngredientes()
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Mi Despensa", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
@@ -70,9 +71,9 @@ fun DashboardScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    actionIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    actionIconContentColor = colorScheme.onBackground
                 )
             )
         }
@@ -87,23 +88,23 @@ fun DashboardScreen(
         ) {
             // Greeting section
             Column {
-                Text("¡Hola, Usuario! \uD83D\uDC4B", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Text("¿Qué vamos a cocinar hoy?", fontSize = 16.sp, color = TextGray)
+                Text("¡Hola, Usuario! 👋", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+                Text("¿Qué vamos a cocinar hoy?", fontSize = 16.sp, color = colorScheme.onSurfaceVariant)
             }
 
             // Search Bar
             OutlinedTextField(
                 value = viewModel.searchQuery,
                 onValueChange = { viewModel.actualizarBusqueda(it) },
-                placeholder = { Text("Buscar ingrediente...", color = TextGray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextGray) },
+                placeholder = { Text("Buscar ingrediente...", color = colorScheme.onSurfaceVariant) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = colorScheme.onSurfaceVariant) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = GrayBorder,
-                    focusedBorderColor = PrimaryGreen,
-                    unfocusedContainerColor = CardWhite,
-                    focusedContainerColor = CardWhite
+                    unfocusedBorderColor = colorScheme.outline,
+                    focusedBorderColor = colorScheme.primary,
+                    unfocusedContainerColor = colorScheme.surface,
+                    focusedContainerColor = colorScheme.surface
                 ),
                 singleLine = true
             )
@@ -126,12 +127,12 @@ fun DashboardScreen(
                             selectedContainerColor = PrimaryGreen,
                             selectedLabelColor = Color.White,
                             containerColor = Color.Transparent,
-                            labelColor = TextGray
+                            labelColor = colorScheme.onSurfaceVariant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = GrayBorder
+                            borderColor = colorScheme.outline
                         ),
                         shape = RoundedCornerShape(20.dp)
                     )
@@ -152,11 +153,11 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Resumen de tu despensa", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                    Text("Resumen de tu despensa", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
                     Icon(
                         imageVector = if (isResumenExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = "Expandir/Minimizar",
-                        tint = TextDark
+                        tint = colorScheme.onBackground
                     )
                 }
                 
@@ -202,7 +203,7 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Buen momento para comprar \uD83D\uDED2", fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                        Text("Buen momento para comprar 🛒", fontWeight = FontWeight.Bold, color = PrimaryGreen)
                         Text(
                             "Tienes ${viewModel.resumen.porVencer} ingredientes por vencer en los próximos 7 días.",
                             fontSize = 12.sp,
@@ -235,7 +236,7 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Por vencer pronto", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                        Text("Por vencer pronto", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
                         Text(
                             "Ver todos",
                             fontSize = 14.sp,
@@ -258,6 +259,7 @@ fun DashboardScreen(
 
 @Composable
 fun ResumenItem(value: String, label: String, bgColor: Color, iconColor: Color, icon: ImageVector) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier.size(48.dp).background(bgColor, CircleShape),
@@ -266,18 +268,19 @@ fun ResumenItem(value: String, label: String, bgColor: Color, iconColor: Color, 
             Icon(icon, contentDescription = label, tint = iconColor, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
-        Text(label, fontSize = 10.sp, color = TextGray, textAlign = TextAlign.Center)
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colorScheme.onBackground)
+        Text(label, fontSize = 10.sp, color = colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier.width(100.dp).clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrayBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, colorScheme.outline)
     ) {
         Column(
             modifier = Modifier.padding(8.dp).fillMaxWidth(),
@@ -301,8 +304,8 @@ fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
                 Box(modifier = Modifier.size(48.dp).background(Color.LightGray, CircleShape))
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(ingrediente.nombre, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextDark, maxLines = 1, textAlign = TextAlign.Center)
-            Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 10.sp, color = TextGray, maxLines = 1)
+            Text(ingrediente.nombre, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground, maxLines = 1, textAlign = TextAlign.Center)
+            Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 10.sp, color = colorScheme.onSurfaceVariant, maxLines = 1)
         }
     }
 }

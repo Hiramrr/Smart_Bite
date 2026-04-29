@@ -29,23 +29,45 @@ private val LightColorScheme = lightColorScheme(
     onSurface = TextDark
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = GreenDark,
+    secondary = PurpleAccent,
+    tertiary = OrangeExpiring,
+    background = BackgroundDark,
+    surface = SurfaceDark,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = TextLight,
+    onSurface = TextLight
+)
+
 @Composable
 fun ComidaTheme(
-    darkTheme: Boolean = false, // Force light theme for now as per design
-    dynamicColor: Boolean = false, // Disable dynamic color to match design exactly
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LightColorScheme
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = BackgroundWhite.toArgb()
-            window.navigationBarColor = BackgroundWhite.toArgb()
-            
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = true
+            val statusBarColor = if (darkTheme) BackgroundDark.toArgb() else BackgroundWhite.toArgb()
+            val navBarColor = if (darkTheme) BackgroundDark.toArgb() else BackgroundWhite.toArgb()
+            window.statusBarColor = statusBarColor
+            window.navigationBarColor = navBarColor
+
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
