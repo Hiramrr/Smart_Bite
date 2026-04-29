@@ -66,8 +66,10 @@ fun DescontarCantidadScreen(
         else -> listOf(ing?.unidad ?: "Piezas")
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Descontar cantidad", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
@@ -77,9 +79,9 @@ fun DescontarCantidadScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    navigationIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    navigationIconContentColor = colorScheme.onBackground
                 )
             )
         },
@@ -88,7 +90,7 @@ fun DescontarCantidadScreen(
                 if (viewModel.uiState is DescontarUiState.Error) {
                     Text(
                         text = (viewModel.uiState as DescontarUiState.Error).message,
-                        color = Color.Red,
+                        color = colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -96,12 +98,12 @@ fun DescontarCantidadScreen(
                 Button(
                     onClick = { viewModel.descontarCantidad(cantidadADescontar, unidadSeleccionada) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
                     shape = RoundedCornerShape(16.dp),
                     enabled = viewModel.uiState !is DescontarUiState.Loading && ing != null
                 ) {
                     if (viewModel.uiState is DescontarUiState.Loading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
                         Text("Confirmar descuento", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
@@ -131,20 +133,20 @@ fun DescontarCantidadScreen(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        Box(modifier = Modifier.size(60.dp).background(LightGreen, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                            Text(ing.nombre.take(1), fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                        Box(modifier = Modifier.size(60.dp).background(colorScheme.primaryContainer, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                            Text(ing.nombre.take(1), fontWeight = FontWeight.Bold, color = colorScheme.primary)
                         }
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text(ing.nombre, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = TextDark)
-                        Text("${ing.cantidad} ${ing.unidad} disponibles", fontSize = 15.sp, color = TextGray)
+                        Text(ing.nombre, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = colorScheme.onBackground)
+                        Text("${ing.cantidad} ${ing.unidad} disponibles", fontSize = 15.sp, color = colorScheme.onSurfaceVariant)
                     }
                 }
 
-                Divider(color = GrayBorder.copy(alpha = 0.5f))
+                Divider(color = colorScheme.outline.copy(alpha = 0.5f))
 
-                Text("¿Cuánta cantidad vas a descontar?", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                Text("¿Cuánta cantidad vas a descontar?", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = colorScheme.onBackground)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
@@ -155,13 +157,13 @@ fun DescontarCantidadScreen(
                         modifier = Modifier.weight(1.2f),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = GrayBorder,
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedContainerColor = CardWhite,
-                            focusedContainerColor = CardWhite
+                            unfocusedBorderColor = colorScheme.outline,
+                            focusedBorderColor = colorScheme.primary,
+                            unfocusedContainerColor = colorScheme.surface,
+                            focusedContainerColor = colorScheme.surface
                         )
                     )
-                    
+
                     // Dropdown de Unidades Inteligente (Exposed Dropdown Menu)
                     Box(modifier = Modifier.weight(1f)) {
                         ExposedDropdownMenuBox(
@@ -176,10 +178,10 @@ fun DescontarCantidadScreen(
                                 modifier = Modifier.menuAnchor().fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    unfocusedBorderColor = GrayBorder,
-                                    focusedBorderColor = PrimaryGreen,
-                                    unfocusedContainerColor = CardWhite,
-                                    focusedContainerColor = CardWhite
+                                    unfocusedBorderColor = colorScheme.outline,
+                                    focusedBorderColor = colorScheme.primary,
+                                    unfocusedContainerColor = colorScheme.surface,
+                                    focusedContainerColor = colorScheme.surface
                                 )
                             )
                             ExposedDropdownMenu(
@@ -213,7 +215,7 @@ fun DescontarCantidadScreen(
                         Text(
                             text = "Se restará de tu inventario actual de forma manual.",
                             fontSize = 13.sp,
-                            color = GreenAccent
+                            color = colorScheme.primary
                         )
                     }
                 }

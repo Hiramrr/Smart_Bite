@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -44,7 +45,8 @@ fun DashboardScreen(
     viewModel: DespensaViewModel,
     userName: String = "Usuario",
     onVerTodosClick: () -> Unit,
-    onVerDetalleClick: (Int) -> Unit
+    onVerDetalleClick: (Int) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val uiState = viewModel.uiState
     val scrollState = rememberScrollState()
@@ -69,6 +71,9 @@ fun DashboardScreen(
                     }
                     IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.Notifications, contentDescription = "Notificaciones")
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -125,8 +130,8 @@ fun DashboardScreen(
                         },
                         label = { Text(categoria.nombre, fontWeight = FontWeight.Medium) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PrimaryGreen,
-                            selectedLabelColor = Color.White,
+                            selectedContainerColor = colorScheme.primary,
+                            selectedLabelColor = colorScheme.onPrimary,
                             containerColor = Color.Transparent,
                             labelColor = colorScheme.onSurfaceVariant
                         ),
@@ -170,22 +175,22 @@ fun DashboardScreen(
                         ResumenItem(
                             viewModel.resumen.total.toString(),
                             "Ingredientes",
-                            LightGreen,
-                            PrimaryGreen,
+                            colorScheme.primaryContainer,
+                            colorScheme.primary,
                             Icons.Default.Kitchen
                         )
                         ResumenItem(
                             viewModel.resumen.porVencer.toString(),
                             "Por vencer",
-                            LightOrange,
-                            OrangeExpiring,
+                            colorScheme.tertiaryContainer,
+                            colorScheme.tertiary,
                             Icons.Default.Warning
                         )
                         ResumenItem(
                             viewModel.resumen.bajosStock.toString(),
                             "Bajos en stock",
-                            LightPurple,
-                            PurpleAccent,
+                            colorScheme.secondaryContainer,
+                            colorScheme.secondary,
                             Icons.Default.TrendingDown
                         )
                     }
@@ -194,7 +199,7 @@ fun DashboardScreen(
 
             // Buen momento para comprar
             Card(
-                colors = CardDefaults.cardColors(containerColor = LightGreen),
+                colors = CardDefaults.cardColors(containerColor = colorScheme.primaryContainer),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -204,16 +209,16 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Buen momento para comprar 🛒", fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                        Text("Buen momento para comprar 🛒", fontWeight = FontWeight.Bold, color = colorScheme.primary)
                         Text(
                             "Tienes ${viewModel.resumen.porVencer} ingredientes por vencer en los próximos 7 días.",
                             fontSize = 12.sp,
-                            color = PrimaryGreen
+                            color = colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = onVerTodosClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = PrimaryGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = colorScheme.surface, contentColor = colorScheme.primary),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                             modifier = Modifier.height(32.dp)
@@ -241,7 +246,7 @@ fun DashboardScreen(
                         Text(
                             "Ver todos",
                             fontSize = 14.sp,
-                            color = PrimaryGreen,
+                            color = colorScheme.primary,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.clickable { onVerTodosClick() }
                         )
@@ -288,11 +293,11 @@ fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Surface(
-                color = LightRed,
+                color = colorScheme.errorContainer,
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                Text("2 días", color = RedExpiring, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                Text("2 días", color = colorScheme.error, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
             }
             if (!ingrediente.imagenUrl.isNullOrEmpty()) {
                 AsyncImage(
@@ -302,7 +307,7 @@ fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Box(modifier = Modifier.size(48.dp).background(Color.LightGray, CircleShape))
+                Box(modifier = Modifier.size(48.dp).background(colorScheme.surfaceVariant, CircleShape))
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(ingrediente.nombre, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground, maxLines = 1, textAlign = TextAlign.Center)

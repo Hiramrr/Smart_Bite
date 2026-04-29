@@ -18,6 +18,12 @@ class AuthViewModel : ViewModel() {
     private val _userName = MutableStateFlow<String?>(null)
     val userName: StateFlow<String?> = _userName
 
+    private val _userEmail = MutableStateFlow<String?>(null)
+    val userEmail: StateFlow<String?> = _userEmail
+
+    private val _userAvatarUrl = MutableStateFlow<String?>(null)
+    val userAvatarUrl: StateFlow<String?> = _userAvatarUrl
+
     init {
         checkSession()
     }
@@ -27,24 +33,27 @@ class AuthViewModel : ViewModel() {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             Log.d("AuthViewModel", "checkSession: session is ${if (session != null) "active" else "null"}")
             _isUserLoggedIn.value = session != null
-            loadUserName()
+            loadUserProfile()
         }
     }
 
-    private fun loadUserName() {
+    private fun loadUserProfile() {
         viewModelScope.launch {
             val user = SupabaseClient.client.auth.currentUserOrNull()
             val name = user?.userMetadata?.get("name")?.toString()?.removeSurrounding("\"")
                 ?: user?.userMetadata?.get("full_name")?.toString()?.removeSurrounding("\"")
             _userName.value = name ?: "Usuario"
-            Log.d("AuthViewModel", "loadUserName: ${_userName.value}")
+            _userEmail.value = user?.email ?: user?.userMetadata?.get("email")?.toString()?.removeSurrounding("\"")
+            _userAvatarUrl.value = user?.userMetadata?.get("avatar_url")?.toString()?.removeSurrounding("\"")
+                ?: user?.userMetadata?.get("picture")?.toString()?.removeSurrounding("\"")
+            Log.d("AuthViewModel", "loadUserProfile: name=${_userName.value}, email=${_userEmail.value}")
         }
     }
 
     fun onLoginSuccess() {
         Log.d("AuthViewModel", "onLoginSuccess triggered")
         _isUserLoggedIn.value = true
-        loadUserName()
+        loadUserProfile()
     }
 
     fun signOut() {
@@ -53,6 +62,8 @@ class AuthViewModel : ViewModel() {
             SupabaseClient.client.auth.signOut()
             _isUserLoggedIn.value = false
             _userName.value = null
+            _userEmail.value = null
+            _userAvatarUrl.value = null
         }
     }
 }

@@ -18,28 +18,50 @@ import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryGreen,
-    secondary = PurpleAccent,
-    tertiary = OrangeExpiring,
-    background = BackgroundWhite,
-    surface = CardWhite,
     onPrimary = Color.White,
+    primaryContainer = LightGreen,
+    onPrimaryContainer = PrimaryGreen,
+    secondary = PurpleAccent,
     onSecondary = Color.White,
+    secondaryContainer = LightPurple,
+    onSecondaryContainer = PurpleAccent,
+    tertiary = OrangeExpiring,
     onTertiary = Color.White,
+    tertiaryContainer = LightOrange,
+    onTertiaryContainer = OrangeExpiring,
+    background = BackgroundWhite,
     onBackground = TextDark,
-    onSurface = TextDark
+    surface = CardWhite,
+    onSurface = TextDark,
+    surfaceVariant = CardWhite,
+    onSurfaceVariant = TextGray,
+    outline = GrayBorder,
+    error = RedExpiring,
+    onError = Color.White
 )
 
 private val DarkColorScheme = darkColorScheme(
     primary = GreenDark,
-    secondary = PurpleAccent,
-    tertiary = OrangeExpiring,
-    background = BackgroundDark,
-    surface = SurfaceDark,
     onPrimary = Color.White,
+    primaryContainer = LightGreenDark,
+    onPrimaryContainer = Color.White,
+    secondary = PurpleAccent,
     onSecondary = Color.White,
+    secondaryContainer = LightPurpleDark,
+    onSecondaryContainer = Color.White,
+    tertiary = OrangeExpiring,
     onTertiary = Color.White,
+    tertiaryContainer = LightOrangeDark,
+    onTertiaryContainer = Color.White,
+    background = BackgroundDark,
     onBackground = TextLight,
-    onSurface = TextLight
+    surface = SurfaceDark,
+    onSurface = TextLight,
+    surfaceVariant = CardDark,
+    onSurfaceVariant = TextGrayDark,
+    outline = GrayBorderDark,
+    error = RedExpiring,
+    onError = Color.White
 )
 
 @Composable

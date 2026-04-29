@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,7 +30,8 @@ import com.smart.comida.ui.viewmodel.ListaComprasViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaComprasScreen(
-    viewModel: ListaComprasViewModel = viewModel()
+    viewModel: ListaComprasViewModel = viewModel(),
+    onSettingsClick: () -> Unit = {}
 ) {
     val uiState = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
@@ -55,12 +57,12 @@ fun ListaComprasScreen(
 
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
-            title = { Text("Agregar a la lista", fontWeight = FontWeight.Bold, color = TextDark) },
+            title = { Text("Agregar a la lista", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = nombre,
-                        onValueChange = { 
+                        onValueChange = {
                             nombre = it
                             if (it.isNotBlank()) errorNombre = false
                         },
@@ -68,13 +70,13 @@ fun ListaComprasScreen(
                         isError = errorNombre,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedBorderColor = GrayBorder,
-                            focusedLabelColor = PrimaryGreen
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary
                         )
                     )
                     if (errorNombre) {
-                        Text("El nombre es obligatorio", color = RedExpiring, fontSize = 12.sp)
+                        Text("El nombre es obligatorio", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -83,9 +85,9 @@ fun ListaComprasScreen(
                         label = { Text("Cantidad esperada (Ej: 2 kg)") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedBorderColor = GrayBorder,
-                            focusedLabelColor = PrimaryGreen
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -100,22 +102,24 @@ fun ListaComprasScreen(
                             mostrarDialogo = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Agregar", color = Color.White)
+                    Text("Agregar", color = MaterialTheme.colorScheme.onPrimary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogo = false }) {
-                    Text("Cancelar", color = TextGray)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = CardWhite
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -127,11 +131,14 @@ fun ListaComprasScreen(
                     IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
                     }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    actionIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    actionIconContentColor = colorScheme.onBackground
                 )
             )
         },
@@ -143,7 +150,7 @@ fun ListaComprasScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                    Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Agregar producto", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
@@ -161,7 +168,7 @@ fun ListaComprasScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFEFEFEF), RoundedCornerShape(24.dp))
+                    .background(colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
                     .padding(4.dp)
             ) {
                 TabButton(text = "Actual", isSelected = selectedTab == 0, modifier = Modifier.weight(1f)) { selectedTab = 0 }
@@ -171,33 +178,33 @@ fun ListaComprasScreen(
             when (uiState) {
                 is ListaComprasUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryGreen)
+                        CircularProgressIndicator(color = colorScheme.primary)
                     }
                 }
                 is ListaComprasUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = uiState.message, color = RedExpiring)
+                        Text(text = uiState.message, color = colorScheme.error)
                     }
                 }
                 is ListaComprasUiState.Success -> {
                     val articulos = uiState.articulos
-                    
+
                     if (articulos.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize().padding(bottom = 56.dp), contentAlignment = Alignment.Center) {
-                            Text("Tu lista de compras está vacía.", color = TextGray)
+                            Text("Tu lista de compras está vacía.", color = colorScheme.onSurfaceVariant)
                         }
                     } else {
                         // Progress
                         val comprados = 0 // Mocked for now or add a boolean logic if DB supports it.
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("Progreso", fontSize = 14.sp, color = TextGray)
-                            Text("$comprados de ${articulos.size}", fontSize = 14.sp, color = TextGray, fontWeight = FontWeight.Medium)
+                            Text("Progreso", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
+                            Text("$comprados de ${articulos.size}", fontSize = 14.sp, color = colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                         }
                         LinearProgressIndicator(
                             progress = { if (articulos.isEmpty()) 0f else comprados.toFloat() / articulos.size.toFloat() },
                             modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                            color = PrimaryGreen,
-                            trackColor = LightGreen
+                            color = colorScheme.primary,
+                            trackColor = colorScheme.primaryContainer
                         )
 
                         // List
@@ -205,8 +212,8 @@ fun ListaComprasScreen(
                             items(articulos) { articulo ->
                                 val isChecked = false // Check if database supports 'comprado' boolean. If not, it's just a UI interaction mocking.
                                 val textDecoration = if (isChecked) TextDecoration.LineThrough else null
-                                val textColor = if (isChecked) TextGray else TextDark
-                                
+                                val textColor = if (isChecked) colorScheme.onSurfaceVariant else colorScheme.onSurface
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
@@ -215,22 +222,22 @@ fun ListaComprasScreen(
                                         selected = isChecked,
                                         onClick = { /* TODO toggle */ },
                                         colors = RadioButtonDefaults.colors(
-                                            selectedColor = PrimaryGreen,
-                                            unselectedColor = GrayBorder
+                                            selectedColor = colorScheme.primary,
+                                            unselectedColor = colorScheme.outline
                                         )
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(articulo.nombre, fontSize = 16.sp, color = textColor, fontWeight = FontWeight.Medium, textDecoration = textDecoration)
                                         articulo.cantidadEsperada?.let {
                                             val displayCantidad = if (articulo.unidad != null) "$it ${articulo.unidad}" else it.toString()
-                                            Text(displayCantidad, fontSize = 12.sp, color = TextGray, textDecoration = textDecoration)
+                                            Text(displayCantidad, fontSize = 12.sp, color = colorScheme.onSurfaceVariant, textDecoration = textDecoration)
                                         }
                                     }
                                     IconButton(onClick = { articulo.id?.let { viewModel.eliminarArticulo(it) } }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = TextGray)
+                                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = colorScheme.onSurfaceVariant)
                                     }
                                 }
-                                HorizontalDivider(color = Color(0xFFEFEFEF), modifier = Modifier.padding(start = 48.dp))
+                                HorizontalDivider(color = colorScheme.surfaceVariant, modifier = Modifier.padding(start = 48.dp))
                             }
                         }
                     }
@@ -242,9 +249,10 @@ fun ListaComprasScreen(
 
 @Composable
 fun TabButton(text: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val bgColor = if (isSelected) PrimaryGreen else Color.Transparent
-    val textColor = if (isSelected) Color.White else TextGray
-    
+    val colorScheme = MaterialTheme.colorScheme
+    val bgColor = if (isSelected) colorScheme.primary else Color.Transparent
+    val textColor = if (isSelected) colorScheme.onPrimary else colorScheme.onSurfaceVariant
+
     Button(
         onClick = onClick,
         modifier = modifier.height(40.dp),

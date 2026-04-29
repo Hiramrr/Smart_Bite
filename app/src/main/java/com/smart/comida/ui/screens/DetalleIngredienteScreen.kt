@@ -58,8 +58,10 @@ fun DetalleIngredienteScreen(
         }
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { },
@@ -77,9 +79,9 @@ fun DetalleIngredienteScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    navigationIconContentColor = TextDark,
-                    actionIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    navigationIconContentColor = colorScheme.onBackground,
+                    actionIconContentColor = colorScheme.onBackground
                 )
             )
         }
@@ -115,13 +117,13 @@ fun DetalleIngredienteScreen(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Box(modifier = Modifier.size(100.dp).background(Color.White, CircleShape))
+                    Box(modifier = Modifier.size(100.dp).background(colorScheme.surface, CircleShape))
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(ingrediente.nombre, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                
+                Text(ingrediente.nombre, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+
                 val categoriaNombre = despensaViewModel.categorias.find { it.id == ingrediente.categoriaId }?.nombre ?: "Sin categoría"
                 Surface(color = LightBlue, shape = RoundedCornerShape(16.dp)) {
                     Text(categoriaNombre, color = BlueText, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
@@ -130,14 +132,14 @@ fun DetalleIngredienteScreen(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Cantidad", color = TextGray, fontSize = 12.sp)
+                    Text("Cantidad", color = colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", color = colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Vence el", color = TextGray, fontSize = 12.sp)
+                    Text("Vence el", color = colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     val fechaFormateada = if (!ingrediente.fechaCaducidad.isNullOrEmpty()) {
                         try {
                             val fecha = java.time.LocalDate.parse(ingrediente.fechaCaducidad)
@@ -147,8 +149,8 @@ fun DetalleIngredienteScreen(
                             ingrediente.fechaCaducidad
                         }
                     } else "Sin fecha"
-                    
-                    Text(fechaFormateada, color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+
+                    Text(fechaFormateada, color = colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     
                     // Cálculo de días restantes
                     if (!ingrediente.fechaCaducidad.isNullOrEmpty()) {
@@ -158,7 +160,7 @@ fun DetalleIngredienteScreen(
                             val diff = java.time.temporal.ChronoUnit.DAYS.between(hoy, fechaCad)
                             
                             when {
-                                diff < 0 -> "Caducado" to Color.Red
+                                diff < 0 -> "Caducado" to colorScheme.error
                                 diff == 0L -> "Caduca hoy" to RedExpiring
                                 diff == 1L -> "Caduca mañana" to OrangeExpiring
                                 else -> "($diff días)" to OrangeExpiring
@@ -176,21 +178,21 @@ fun DetalleIngredienteScreen(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Comprado el", color = TextGray, fontSize = 12.sp)
+                    Text("Comprado el", color = colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("10/05/2024", color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text("10/05/2024", color = colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Ubicación", color = TextGray, fontSize = 12.sp)
+                    Text("Ubicación", color = colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Refrigerador", color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text("Refrigerador", color = colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
             Column {
-                Text("Notas", color = TextGray, fontSize = 12.sp)
+                Text("Notas", color = colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Sin notas", color = TextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text("Sin notas", color = colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -218,29 +220,29 @@ fun DetalleIngredienteScreen(
                 text = "¿Qué preparar con esto?",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextDark
+                color = colorScheme.onBackground
             )
-            
+
             when (recipeState) {
                 is RecipeUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryGreen)
+                        CircularProgressIndicator(color = colorScheme.primary)
                     }
                 }
                 is RecipeUiState.Error -> {
-                    Text((recipeState as RecipeUiState.Error).message, color = RedExpiring)
+                    Text((recipeState as RecipeUiState.Error).message, color = colorScheme.error)
                 }
                 is RecipeUiState.SearchSuccess -> {
                     val recetas = (recipeState as RecipeUiState.SearchSuccess).recipes
                     if (recetas.isEmpty()) {
-                        Text("No se encontraron recetas", color = TextGray)
+                        Text("No se encontraron recetas", color = colorScheme.onSurfaceVariant)
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             recetas.forEach { receta ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color.White, RoundedCornerShape(12.dp))
+                                        .background(colorScheme.surface, RoundedCornerShape(12.dp))
                                         .clickable { onVerRecetaClick(receta.id) }
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -254,7 +256,7 @@ fun DetalleIngredienteScreen(
                                         contentScale = ContentScale.Crop
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
-                                    Text(text = receta.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                                    Text(text = receta.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = colorScheme.onSurface)
                                 }
                             }
                         }
@@ -270,6 +272,7 @@ fun DetalleIngredienteScreen(
 
 @Composable
 fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, iconColor: Color, bgColor: Color, onClick: () -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
         Box(
             modifier = Modifier.size(56.dp).background(bgColor, CircleShape),
@@ -278,6 +281,6 @@ fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: S
             Icon(icon, contentDescription = label, tint = iconColor)
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(label, fontSize = 12.sp, color = TextDark, fontWeight = FontWeight.Medium)
+        Text(label, fontSize = 12.sp, color = colorScheme.onBackground, fontWeight = FontWeight.Medium)
     }
 }

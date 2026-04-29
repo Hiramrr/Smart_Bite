@@ -9,8 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -61,11 +61,12 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
         return
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
         bottomBar = {
-            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas", "recetas", "settings")
+            val showBottomBar = currentRoute in listOf("dashboard", "despensa_list", "lista_compras", "estadisticas", "recetas", "profile")
             if (showBottomBar) {
-                val colorScheme = MaterialTheme.colorScheme
                 NavigationBar(
                     containerColor = colorScheme.surface,
                     contentColor = colorScheme.onSurfaceVariant,
@@ -83,8 +84,8 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryGreen,
-                            selectedTextColor = PrimaryGreen,
+                            selectedIconColor = colorScheme.primary,
+                            selectedTextColor = colorScheme.primary,
                             indicatorColor = Color.Transparent,
                             unselectedIconColor = colorScheme.onSurfaceVariant,
                             unselectedTextColor = colorScheme.onSurfaceVariant
@@ -102,20 +103,20 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryGreen,
-                            selectedTextColor = PrimaryGreen,
+                            selectedIconColor = colorScheme.primary,
+                            selectedTextColor = colorScheme.primary,
                             indicatorColor = Color.Transparent,
                             unselectedIconColor = colorScheme.onSurfaceVariant,
                             unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
-                    
+
                     // The floating + button in the middle
                     Box(modifier = Modifier.padding(top = 12.dp)) {
                         FloatingActionButton(
                             onClick = { navController.navigate("agregar") },
-                            containerColor = PrimaryGreen,
-                            contentColor = Color.White,
+                            containerColor = colorScheme.primary,
+                            contentColor = colorScheme.onPrimary,
                             shape = CircleShape,
                             modifier = Modifier.size(56.dp),
                             elevation = FloatingActionButtonDefaults.elevation(0.dp)
@@ -136,27 +137,27 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryGreen,
-                            selectedTextColor = PrimaryGreen,
+                            selectedIconColor = colorScheme.primary,
+                            selectedTextColor = colorScheme.primary,
                             indicatorColor = Color.Transparent,
                             unselectedIconColor = colorScheme.onSurfaceVariant,
                             unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Configuración") },
-                        label = { Text("Configuración") },
-                        selected = currentRoute == "settings",
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
+                        label = { Text("Perfil") },
+                        selected = currentRoute == "profile",
                         onClick = {
-                            navController.navigate("settings") {
+                            navController.navigate("profile") {
                                 popUpTo("dashboard") { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryGreen,
-                            selectedTextColor = PrimaryGreen,
+                            selectedIconColor = colorScheme.primary,
+                            selectedTextColor = colorScheme.primary,
                             indicatorColor = Color.Transparent,
                             unselectedIconColor = colorScheme.onSurfaceVariant,
                             unselectedTextColor = colorScheme.onSurfaceVariant
@@ -190,15 +191,17 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     viewModel = despensaViewModelCompartido,
                     userName = userName ?: "Usuario",
                     onVerTodosClick = { navController.navigate("despensa_list") },
-                    onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") }
+                    onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
-            
+
             composable("despensa_list") {
                 DespensaListScreen(
                     viewModel = despensaViewModelCompartido,
                     onBackClick = { navController.popBackStack() },
-                    onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") }
+                    onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
 
@@ -275,11 +278,15 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             }
 
             composable("lista_compras") {
-                ListaComprasScreen()
+                ListaComprasScreen(
+                    onSettingsClick = { navController.navigate("settings") }
+                )
             }
-            
+
             composable("estadisticas") {
-                EstadisticasScreen()
+                EstadisticasScreen(
+                    onSettingsClick = { navController.navigate("settings") }
+                )
             }
 
             composable("settings") {
@@ -293,7 +300,21 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             composable("recetas") {
                 RecipeListScreen(
                     onVolver = { navController.popBackStack() },
-                    onRecetaClick = { id -> navController.navigate("detalle_receta/$id") }
+                    onRecetaClick = { id -> navController.navigate("detalle_receta/$id") },
+                    onSettingsClick = { navController.navigate("settings") }
+                )
+            }
+
+            composable("profile") {
+                val userName by authViewModel.userName.collectAsState()
+                val userEmail by authViewModel.userEmail.collectAsState()
+                val userAvatarUrl by authViewModel.userAvatarUrl.collectAsState()
+                ProfileScreen(
+                    userName = userName ?: "Usuario",
+                    userEmail = userEmail,
+                    userAvatarUrl = userAvatarUrl,
+                    onSettingsClick = { navController.navigate("settings") },
+                    onSignOut = { authViewModel.signOut() }
                 )
             }
         }

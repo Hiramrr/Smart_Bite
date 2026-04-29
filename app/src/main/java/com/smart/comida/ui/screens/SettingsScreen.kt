@@ -59,7 +59,7 @@ fun SettingsScreen(
                 text = "Apariencia",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGreen,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 8.dp, top = 8.dp)
             )
 
@@ -84,7 +84,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Filled.DarkMode,
                             contentDescription = null,
-                            tint = PrimaryGreen,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(28.dp)
                         )
                         Column {
@@ -97,7 +97,7 @@ fun SettingsScreen(
                             Text(
                                 "Cambia la apariencia de la app",
                                 fontSize = 14.sp,
-                                color = TextGray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -105,8 +105,8 @@ fun SettingsScreen(
                         checked = isDarkMode,
                         onCheckedChange = { themeViewModel.setDarkMode(it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = PrimaryGreen,
-                            checkedTrackColor = LightGreen
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     )
                 }
@@ -119,7 +119,7 @@ fun SettingsScreen(
                 text = "Cuenta",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGreen,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 8.dp)
             )
 
@@ -144,7 +144,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = null,
-                            tint = RedExpiring,
+                            tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(28.dp)
                         )
                         Column {
@@ -157,15 +157,15 @@ fun SettingsScreen(
                             Text(
                                 "Salir de tu cuenta actual",
                                 fontSize = 14.sp,
-                                color = TextGray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                     Button(
                         onClick = onSignOut,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = RedExpiring.copy(alpha = 0.15f),
-                            contentColor = RedExpiring
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.error
                         ),
                         shape = RoundedCornerShape(12.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)

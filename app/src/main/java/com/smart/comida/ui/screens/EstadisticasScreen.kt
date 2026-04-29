@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,11 +22,15 @@ import com.smart.comida.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EstadisticasScreen() {
+fun EstadisticasScreen(
+    onSettingsClick: () -> Unit = {}
+) {
     val scrollState = rememberScrollState()
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Estadísticas", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
@@ -33,11 +38,14 @@ fun EstadisticasScreen() {
                     IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.CalendarToday, contentDescription = "Calendario")
                     }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    actionIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    actionIconContentColor = colorScheme.onBackground
                 )
             )
         }
@@ -58,32 +66,32 @@ fun EstadisticasScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = GrayBorder,
-                    focusedBorderColor = PrimaryGreen,
-                    unfocusedContainerColor = CardWhite,
-                    focusedContainerColor = CardWhite
+                    unfocusedBorderColor = colorScheme.outline,
+                    focusedBorderColor = colorScheme.primary,
+                    unfocusedContainerColor = colorScheme.surface,
+                    focusedContainerColor = colorScheme.surface
                 )
             )
 
             // Ahorro estimado chart Mock
             Card(
-                colors = CardDefaults.cardColors(containerColor = CardWhite),
+                colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
                 shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, GrayBorder),
+                border = androidx.compose.foundation.BorderStroke(1.dp, colorScheme.outline),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Ahorro estimado", color = TextGray, fontSize = 14.sp)
+                    Text("Ahorro estimado", color = colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("$320", fontWeight = FontWeight.Bold, fontSize = 24.sp, color = TextDark)
+                        Text("$320", fontWeight = FontWeight.Bold, fontSize = 24.sp, color = colorScheme.onSurface)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Surface(color = LightGreen, shape = RoundedCornerShape(4.dp)) {
-                            Text("↑ 18%", color = PrimaryGreen, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                        Surface(color = colorScheme.primaryContainer, shape = RoundedCornerShape(4.dp)) {
+                            Text("↑ 18%", color = colorScheme.primary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     // Mock Chart
-                    Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(LightGreen, RoundedCornerShape(8.dp)))
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(colorScheme.primaryContainer, RoundedCornerShape(8.dp)))
                 }
             }
 
@@ -95,23 +103,23 @@ fun EstadisticasScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Ingredientes por vencer", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                        Text("Próximos 7 días", fontSize = 12.sp, color = TextGray)
+                        Text("Ingredientes por vencer", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colorScheme.onSurface)
+                        Text("Próximos 7 días", fontSize = 12.sp, color = colorScheme.onSurfaceVariant)
                     }
-                    Text("6", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                    Text("6", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = colorScheme.onSurface)
                 }
 
                 // Horizontal list mock of small circular images
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(5) {
-                        Box(modifier = Modifier.size(40.dp).background(Color.LightGray, CircleShape))
+                        Box(modifier = Modifier.size(40.dp).background(colorScheme.surfaceVariant, CircleShape))
                     }
                     item {
                         Box(
-                            modifier = Modifier.size(40.dp).background(LightGreen, CircleShape),
+                            modifier = Modifier.size(40.dp).background(colorScheme.primaryContainer, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("+1", color = PrimaryGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("+1", color = colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

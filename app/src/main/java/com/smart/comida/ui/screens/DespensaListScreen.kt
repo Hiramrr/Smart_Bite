@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,14 +36,17 @@ import com.smart.comida.ui.viewmodel.DespensaViewModel
 fun DespensaListScreen(
     viewModel: DespensaViewModel,
     onBackClick: () -> Unit,
-    onVerDetalleClick: (Int) -> Unit
+    onVerDetalleClick: (Int) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
     var expandirCaducidad by remember { mutableStateOf(false) }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Mi Despensa", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
@@ -58,12 +62,15 @@ fun DespensaListScreen(
                     IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.SwapVert, contentDescription = "Ordenar")
                     }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    navigationIconContentColor = TextDark,
-                    actionIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    navigationIconContentColor = colorScheme.onBackground,
+                    actionIconContentColor = colorScheme.onBackground
                 )
             )
         }
@@ -85,12 +92,12 @@ fun DespensaListScreen(
                         },
                         label = { Text("Todos") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PrimaryGreen,
-                            selectedLabelColor = Color.White,
-                            containerColor = BackgroundWhite,
-                            labelColor = TextGray
+                            selectedContainerColor = colorScheme.primary,
+                            selectedLabelColor = colorScheme.onPrimary,
+                            containerColor = colorScheme.background,
+                            labelColor = colorScheme.onSurfaceVariant
                         ),
-                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null, borderColor = GrayBorder),
+                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null, borderColor = colorScheme.outline),
                         shape = CircleShape
                     )
                 }
@@ -119,14 +126,14 @@ fun DespensaListScreen(
                                 )
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFFD47979),
-                                selectedLabelColor = Color.White,
-                                selectedLeadingIconColor = Color.White,
-                                selectedTrailingIconColor = Color.White,
-                                containerColor = BackgroundWhite,
-                                labelColor = TextGray
+                                selectedContainerColor = colorScheme.error,
+                                selectedLabelColor = colorScheme.onError,
+                                selectedLeadingIconColor = colorScheme.onError,
+                                selectedTrailingIconColor = colorScheme.onError,
+                                containerColor = colorScheme.background,
+                                labelColor = colorScheme.onSurfaceVariant
                             ),
-                            border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.diasFiltroCaducidad != null, borderColor = GrayBorder),
+                            border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.diasFiltroCaducidad != null, borderColor = colorScheme.outline),
                             shape = CircleShape
                         )
                         
@@ -157,19 +164,19 @@ fun DespensaListScreen(
                     }
                 }
 
-                items(categorias) { categoria ->
+                    items(categorias) { categoria ->
                     val isSelected = viewModel.filtroSeleccionado?.id == categoria.id
                     FilterChip(
                         selected = isSelected,
                         onClick = { viewModel.seleccionarFiltroCategoria(categoria) },
                         label = { Text(categoria.nombre) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PrimaryGreen,
-                            selectedLabelColor = Color.White,
-                            containerColor = BackgroundWhite,
-                            labelColor = TextGray
+                            selectedContainerColor = colorScheme.primary,
+                            selectedLabelColor = colorScheme.onPrimary,
+                            containerColor = colorScheme.background,
+                            labelColor = colorScheme.onSurfaceVariant
                         ),
-                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSelected, borderColor = GrayBorder),
+                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSelected, borderColor = colorScheme.outline),
                         shape = CircleShape
                     )
                 }
@@ -179,18 +186,18 @@ fun DespensaListScreen(
             when (uiState) {
                 is DespensaUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryGreen)
+                        CircularProgressIndicator(color = colorScheme.primary)
                     }
                 }
                 is DespensaUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(uiState.message, color = RedExpiring)
+                        Text(uiState.message, color = colorScheme.error)
                     }
                 }
                 is DespensaUiState.Success -> {
                     if (uiState.ingredientes.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No se encontraron ingredientes.", color = TextGray)
+                            Text("No se encontraron ingredientes.", color = colorScheme.onSurfaceVariant)
                         }
                     } else {
                         LazyColumn(
@@ -211,10 +218,11 @@ fun DespensaListScreen(
 
 @Composable
 fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White, RoundedCornerShape(12.dp))
+            .background(colorScheme.surface, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -227,14 +235,14 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop
             )
         } else {
-            Box(modifier = Modifier.size(48.dp).background(Color.LightGray, RoundedCornerShape(8.dp)))
+            Box(modifier = Modifier.size(48.dp).background(colorScheme.surfaceVariant, RoundedCornerShape(8.dp)))
         }
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Column(modifier = Modifier.weight(1f)) {
-            Text(ingrediente.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
-            Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 14.sp, color = TextGray)
+            Text(ingrediente.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colorScheme.onSurface)
+            Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
         }
 
         // Cálculo de días reales
@@ -258,8 +266,8 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
         }
 
         if (diasRestantesText.isNotEmpty()) {
-            val textColor = when (diasRestantesText) {
-                "Caducado" -> Color.Red
+                val textColor = when (diasRestantesText) {
+                "Caducado" -> MaterialTheme.colorScheme.error
                 "Caduca hoy" -> RedExpiring
                 else -> OrangeExpiring
             }
@@ -271,5 +279,5 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
             )
         }
         }
-    Divider(color = BackgroundWhite)
+    Divider(color = colorScheme.background)
 }

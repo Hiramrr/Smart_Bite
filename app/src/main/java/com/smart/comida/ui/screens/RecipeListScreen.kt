@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,13 +32,16 @@ import com.smart.comida.ui.viewmodel.RecipeViewModel
 fun RecipeListScreen(
     onVolver: () -> Unit,
     onRecetaClick: (Int) -> Unit,
-    recipeViewModel: RecipeViewModel = viewModel()
+    recipeViewModel: RecipeViewModel = viewModel(),
+    onSettingsClick: () -> Unit = {}
 ) {
     val uiState by recipeViewModel.uiState.collectAsState()
     var query by remember { mutableStateOf("") }
 
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Recetas", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
@@ -46,10 +50,15 @@ fun RecipeListScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    navigationIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    navigationIconContentColor = colorScheme.onBackground
                 )
             )
         }
@@ -65,15 +74,15 @@ fun RecipeListScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Buscar receta o ingrediente...", color = TextGray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextGray) },
+                placeholder = { Text("Buscar receta o ingrediente...", color = colorScheme.onSurfaceVariant) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = colorScheme.onSurfaceVariant) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = GrayBorder,
-                    focusedBorderColor = PrimaryGreen,
-                    unfocusedContainerColor = CardWhite,
-                    focusedContainerColor = CardWhite
+                    unfocusedBorderColor = colorScheme.outline,
+                    focusedBorderColor = colorScheme.primary,
+                    unfocusedContainerColor = colorScheme.surface,
+                    focusedContainerColor = colorScheme.surface
                 ),
                 singleLine = true
             )
@@ -81,7 +90,7 @@ fun RecipeListScreen(
             Button(
                 onClick = { if (query.isNotBlank()) recipeViewModel.searchRecipes(query) },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Buscar", fontWeight = FontWeight.Bold)
@@ -90,14 +99,14 @@ fun RecipeListScreen(
             when (uiState) {
                 is RecipeUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryGreen)
+                        CircularProgressIndicator(color = colorScheme.primary)
                     }
                 }
                 is RecipeUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             (uiState as RecipeUiState.Error).message,
-                            color = TextGray,
+                            color = colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -119,7 +128,7 @@ fun RecipeListScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             "Busca recetas por ingrediente o nombre",
-                            color = TextGray,
+                            color = colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -131,13 +140,14 @@ fun RecipeListScreen(
 
 @Composable
 fun RecipeCard(receta: Recipe, onClick: () -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrayBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, colorScheme.outline)
     ) {
         Column {
             AsyncImage(
@@ -153,7 +163,7 @@ fun RecipeCard(receta: Recipe, onClick: () -> Unit) {
                 text = receta.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextDark,
+                color = colorScheme.onSurface,
                 modifier = Modifier.padding(12.dp),
                 maxLines = 2
             )

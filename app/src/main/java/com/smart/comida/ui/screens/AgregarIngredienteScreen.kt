@@ -43,7 +43,8 @@ fun AgregarIngredienteScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-    
+    val colorScheme = MaterialTheme.colorScheme
+
     // Estados del formulario
     var nombre by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf<com.smart.comida.data.model.Categoria?>(null) }
@@ -103,7 +104,7 @@ fun AgregarIngredienteScreen(
     }
 
     Scaffold(
-        containerColor = BackgroundWhite,
+        containerColor = colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Agregar ingrediente", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
@@ -118,10 +119,10 @@ fun AgregarIngredienteScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundWhite,
-                    titleContentColor = TextDark,
-                    navigationIconContentColor = TextDark,
-                    actionIconContentColor = TextDark
+                    containerColor = colorScheme.background,
+                    titleContentColor = colorScheme.onBackground,
+                    navigationIconContentColor = colorScheme.onBackground,
+                    actionIconContentColor = colorScheme.onBackground
                 )
             )
         },
@@ -130,7 +131,7 @@ fun AgregarIngredienteScreen(
                 if (viewModel.uiState is IngredienteUiState.Error) {
                     Text(
                         text = (viewModel.uiState as IngredienteUiState.Error).message,
-                        color = Color.Red,
+                        color = colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -148,12 +149,12 @@ fun AgregarIngredienteScreen(
                         )
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
                     shape = RoundedCornerShape(16.dp),
                     enabled = viewModel.uiState !is IngredienteUiState.Loading
                 ) {
                     if (viewModel.uiState is IngredienteUiState.Loading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
                         Text("Guardar ingrediente", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
@@ -194,11 +195,11 @@ fun AgregarIngredienteScreen(
                         .align(Alignment.BottomEnd)
                         .offset(x = (-8).dp, y = (-8).dp)
                         .size(40.dp)
-                        .background(Color.White, CircleShape)
+                        .background(colorScheme.surface, CircleShape)
                         .padding(8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CameraAlt, null, tint = TextDark, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.CameraAlt, null, tint = colorScheme.onSurface, modifier = Modifier.size(20.dp))
                 }
             }
 
@@ -211,7 +212,7 @@ fun AgregarIngredienteScreen(
 
             // Selector de Categoría
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Categoría *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text("Categoría *", color = colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 ExposedDropdownMenuBox(
                     expanded = expandedCategoria,
                     onExpandedChange = { expandedCategoria = it }
@@ -220,15 +221,15 @@ fun AgregarIngredienteScreen(
                         value = categoriaSeleccionada?.nombre ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        placeholder = { Text("Seleccionar categoría", color = TextGray) },
+                        placeholder = { Text("Seleccionar categoría", color = colorScheme.onSurfaceVariant) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = GrayBorder,
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedContainerColor = CardWhite,
-                            focusedContainerColor = CardWhite
+                            unfocusedBorderColor = colorScheme.outline,
+                            focusedBorderColor = colorScheme.primary,
+                            unfocusedContainerColor = colorScheme.surface,
+                            focusedContainerColor = colorScheme.surface
                         )
                     )
                     ExposedDropdownMenu(
@@ -260,7 +261,7 @@ fun AgregarIngredienteScreen(
                 }
                 // Selector de Unidad
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Unidad *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Unidad *", color = colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     ExposedDropdownMenuBox(
                         expanded = expandedUnidad,
                         onExpandedChange = { expandedUnidad = it }
@@ -269,15 +270,15 @@ fun AgregarIngredienteScreen(
                             value = unidad,
                             onValueChange = {},
                             readOnly = true,
-                            placeholder = { Text("Unidad", color = TextGray) },
+                            placeholder = { Text("Unidad", color = colorScheme.onSurfaceVariant) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnidad) },
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = GrayBorder,
-                                focusedBorderColor = PrimaryGreen,
-                                unfocusedContainerColor = CardWhite,
-                                focusedContainerColor = CardWhite
+                                unfocusedBorderColor = colorScheme.outline,
+                                focusedBorderColor = colorScheme.primary,
+                                unfocusedContainerColor = colorScheme.surface,
+                                focusedContainerColor = colorScheme.surface
                             )
                         )
                         ExposedDropdownMenu(
@@ -300,24 +301,24 @@ fun AgregarIngredienteScreen(
 
             // Selector de Fecha
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Fecha de caducidad *", color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text("Fecha de caducidad *", color = colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 OutlinedTextField(
                     value = fechaCaducidad,
                     onValueChange = {},
                     readOnly = true,
-                    placeholder = { Text("Seleccionar fecha", color = TextGray) },
-                    trailingIcon = { 
+                    placeholder = { Text("Seleccionar fecha", color = colorScheme.onSurfaceVariant) },
+                    trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarToday, null, tint = TextGray)
+                            Icon(Icons.Default.CalendarToday, null, tint = colorScheme.onSurfaceVariant)
                         }
                     },
                     modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = GrayBorder,
-                        focusedBorderColor = PrimaryGreen,
-                        unfocusedContainerColor = CardWhite,
-                        focusedContainerColor = CardWhite
+                        unfocusedBorderColor = colorScheme.outline,
+                        focusedBorderColor = colorScheme.primary,
+                        unfocusedContainerColor = colorScheme.surface,
+                        focusedContainerColor = colorScheme.surface
                     )
                 )
             }
@@ -330,7 +331,7 @@ fun AgregarIngredienteScreen(
                 singleLine = false,
                 modifier = Modifier.height(100.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -357,23 +358,24 @@ fun FormTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, color = TextDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             readOnly = readOnly,
-            placeholder = { Text(placeholder, color = TextGray, fontSize = 14.sp) },
+            placeholder = { Text(placeholder, color = colorScheme.onSurfaceVariant, fontSize = 14.sp) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             singleLine = singleLine,
             trailingIcon = trailingIcon,
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = GrayBorder,
-                focusedBorderColor = PrimaryGreen,
-                unfocusedContainerColor = CardWhite,
-                focusedContainerColor = CardWhite
+                unfocusedBorderColor = colorScheme.outline,
+                focusedBorderColor = colorScheme.primary,
+                unfocusedContainerColor = colorScheme.surface,
+                focusedContainerColor = colorScheme.surface
             )
         )
     }
