@@ -104,16 +104,16 @@ class DespensaViewModel : ViewModel() {
         }
     }
 
-    fun registrarComoDesperdicio(ingrediente: Ingrediente) {
+    fun registrarComoDesperdicio(ingrediente: Ingrediente, cantidadDesperdicio: Float) {
         if (ingrediente.id == null) {
             mensajeOperacion = "No se pudo registrar el desperdicio: ingrediente inválido."
             return
         }
 
         viewModelScope.launch {
-            val resultado = repository.registrarComoDesperdicio(ingrediente)
+            val resultado = repository.registrarComoDesperdicio(ingrediente, cantidadDesperdicio)
             resultado.onSuccess {
-                mensajeOperacion = "Ingrediente registrado como desperdicio."
+                mensajeOperacion = "Desperdicio registrado correctamente."
                 cargarIngredientes()
             }.onFailure {
                 mensajeOperacion = "Error al registrar desperdicio: ${it.message ?: "Intenta nuevamente."}"

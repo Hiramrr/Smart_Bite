@@ -92,14 +92,14 @@ class InventarioRepository {
         }
     }
 
-    suspend fun registrarComoDesperdicio(ingrediente: Ingrediente): Result<Unit> {
+    suspend fun registrarComoDesperdicio(ingrediente: Ingrediente, cantidadDesperdicio: Float): Result<Unit> {
         val ingredienteId = ingrediente.id
             ?: return Result.failure(IllegalArgumentException("Ingrediente sin ID válido"))
         val fechaDesecho = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         val desperdicio = Desperdicio(
             nombre = ingrediente.nombre,
-            cantidad = ingrediente.cantidad,
+            cantidad = cantidadDesperdicio,
             unidad = ingrediente.unidad,
             fechaCaducidad = ingrediente.fechaCaducidad,
             categoriaId = ingrediente.categoriaId,
@@ -111,16 +111,33 @@ class InventarioRepository {
                 .insert(desperdicio)
 
             try {
-                SupabaseClient.client.postgrest["ingredientes"]
-                    .delete { filter { eq("id", ingredienteId) } }
+                val nuevaCantidad = ingrediente.cantidad - cantidadDesperdicio
+                if (nuevaCantidad <= 0) {
+                    // Si se desperdicia todo o más, eliminar el ingrediente
+                    SupabaseClient.client.postgrest["ingredientes"]
+                        .delete { filter { eq("id", ingredienteId) } }
+                } else {
+                    // Si solo se desperdicia una parte, actualizar la cantidad
+                    val ingredienteActualizado = Ingrediente(
+                        id = ingredienteId,
+                        nombre = ingrediente.nombre,
+                        cantidad = nuevaCantidad,
+                        unidad = ingrediente.unidad,
+                        fechaCaducidad = ingrediente.fechaCaducidad,
+                        categoriaId = ingrediente.categoriaId,
+                        imagenUrl = ingrediente.imagenUrl
+                    )
+                    SupabaseClient.client.postgrest["ingredientes"]
+                        .update(ingredienteActualizado) { filter { eq("id", ingredienteId) } }
+                }
             } catch (deleteError: Exception) {
-                // Si falla la eliminación en inventario, revertimos el historial insertado.
+                // Si falla la actualización/eliminación en inventario, revertimos el historial insertado.
                 runCatching {
                     SupabaseClient.client.postgrest["historial_desperdicio"]
                         .delete {
                             filter {
                                 eq("nombre", ingrediente.nombre)
-                                eq("cantidad", ingrediente.cantidad)
+                                eq("cantidad", cantidadDesperdicio)
                                 eq("fecha_desecho", fechaDesecho)
                             }
                         }

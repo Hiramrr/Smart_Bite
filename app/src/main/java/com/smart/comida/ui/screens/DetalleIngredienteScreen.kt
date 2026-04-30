@@ -20,11 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.smart.comida.R
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
@@ -39,6 +41,7 @@ fun DetalleIngredienteScreen(
     onVolver: () -> Unit,
     onEditarClick: (Int) -> Unit,
     onDescontarClick: (Int) -> Unit,
+    onRegistrarDesperdicioClick: (Int) -> Unit,
     onVerRecetaClick: (Int) -> Unit,
     despensaViewModel: DespensaViewModel,
     recipeViewModel: RecipeViewModel = viewModel()
@@ -52,6 +55,8 @@ fun DetalleIngredienteScreen(
 
     val recipeState by recipeViewModel.uiState.collectAsState()
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(ingrediente) {
         if (ingrediente != null) {
             recipeViewModel.searchRecipes(ingrediente.nombre)
@@ -59,6 +64,32 @@ fun DetalleIngredienteScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
+
+    if (showDeleteDialog && ingrediente != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar ingrediente") },
+            text = { Text("¿Estás seguro de que deseas eliminar ${ingrediente.nombre} permanentemente? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        ingrediente.id?.let { id ->
+                            despensaViewModel.eliminarIngrediente(id, ingrediente.imagenUrl)
+                        }
+                        showDeleteDialog = false
+                        onVolver()
+                    }
+                ) {
+                    Text("Eliminar", color = colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = colorScheme.background,
@@ -202,15 +233,30 @@ fun DetalleIngredienteScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                ActionButton(icon = Icons.Default.Edit, label = "Editar", iconColor = PrimaryGreen, bgColor = LightGreen) {
-                    ingrediente.id?.let { onEditarClick(it) }
-                }
-                ActionButton(icon = Icons.Default.Remove, label = "Descontar", iconColor = PurpleAccent, bgColor = LightPurple) {
-                    ingrediente.id?.let { onDescontarClick(it) }
-                }
-                ActionButton(icon = Icons.Default.Delete, label = "Eliminar", iconColor = RedExpiring, bgColor = LightRed) {
-                    // TODO logic
-                }
+                ActionButton(
+                    icon = { Icon(Icons.Default.Edit, contentDescription = "Editar", tint = PrimaryGreen) },
+                    label = "Editar",
+                    bgColor = LightGreen,
+                    onClick = { ingrediente.id?.let { onEditarClick(it) } }
+                )
+                ActionButton(
+                    icon = { Icon(Icons.Default.Remove, contentDescription = "Descontar", tint = PurpleAccent) },
+                    label = "Descontar",
+                    bgColor = LightPurple,
+                    onClick = { ingrediente.id?.let { onDescontarClick(it) } }
+                )
+                ActionButton(
+                    icon = { Icon(painterResource(id = R.drawable.ic_desperdicio), contentDescription = "Desperdicio", tint = OrangeExpiring) },
+                    label = "Desperdicio",
+                    bgColor = LightOrange,
+                    onClick = { ingrediente.id?.let { onRegistrarDesperdicioClick(it) } }
+                )
+                ActionButton(
+                    icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = RedExpiring) },
+                    label = "Eliminar",
+                    bgColor = LightRed,
+                    onClick = { showDeleteDialog = true }
+                )
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -271,14 +317,14 @@ fun DetalleIngredienteScreen(
 }
 
 @Composable
-fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, iconColor: Color, bgColor: Color, onClick: () -> Unit) {
+fun ActionButton(icon: @Composable () -> Unit, label: String, bgColor: Color, onClick: () -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
         Box(
             modifier = Modifier.size(56.dp).background(bgColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = label, tint = iconColor)
+            icon()
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(label, fontSize = 12.sp, color = colorScheme.onBackground, fontWeight = FontWeight.Medium)

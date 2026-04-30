@@ -244,6 +244,9 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     onDescontarClick = { idIngrediente ->
                         navController.navigate("descontar/$idIngrediente")
                     },
+                    onRegistrarDesperdicioClick = { idIngrediente ->
+                        navController.navigate("registrar_desperdicio/$idIngrediente")
+                    },
                     onVerRecetaClick = { idReceta ->
                         navController.navigate("detalle_receta/$idReceta")
                     },
@@ -271,6 +274,21 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     ingredienteId = id,
                     onVolver = { navController.popBackStack() },
                     onDescontadoExitoso = {
+                        despensaViewModelCompartido.cargarIngredientes()
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(
+                route = "registrar_desperdicio/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getInt("id") ?: 0
+                RegistrarDesperdicioScreen(
+                    ingredienteId = id,
+                    onVolver = { navController.popBackStack() },
+                    onRegistroExitoso = {
                         despensaViewModelCompartido.cargarIngredientes()
                         navController.popBackStack()
                     }

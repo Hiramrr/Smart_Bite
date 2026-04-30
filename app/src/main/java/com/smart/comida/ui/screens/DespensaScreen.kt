@@ -71,7 +71,7 @@ fun DespensaScreen(
                 TextButton(
                     onClick = {
                         ingredienteADesperdicio?.let { ing ->
-                            viewModel.registrarComoDesperdicio(ing)
+                            viewModel.registrarComoDesperdicio(ing, ing.cantidad)
                         }
                         ingredienteADesperdicio = null
                     }
