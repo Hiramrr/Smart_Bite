@@ -1,5 +1,6 @@
 package com.smart.comida.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -345,16 +347,77 @@ fun DespensaScreen(
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
-                            items(recentlyAdded) { ingrediente ->
-                                Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                                    RecentlyAddedCard(
-                                        ingrediente = ingrediente,
-                                        categoriaNombre = categoriasPorId[ingrediente.categoriaId]?.nombre ?: "Sin categoría",
-                                        onClick = onVerDetalleClick,
-                                        onEditarClick = { ingrediente.id?.let(onEditarClick) },
-                                        onEliminarClick = { ingredienteADesperdicio = ingrediente }
-                                    )
-                                }
+                            items(recentlyAdded, key = { it.id ?: it.hashCode() }) { ingrediente ->
+                                val categoriaNombre = categoriasPorId[ingrediente.categoriaId]?.nombre ?: "Sin categoría"
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = { value ->
+                                        when (value) {
+                                            SwipeToDismissBoxValue.EndToStart -> {
+                                                ingredienteADesperdicio = ingrediente
+                                                false
+                                            }
+                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                                viewModel.usarIngrediente(ingrediente)
+                                                false
+                                            }
+                                            SwipeToDismissBoxValue.Settled -> false
+                                        }
+                                    }
+                                )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    enableDismissFromStartToEnd = true,
+                                    enableDismissFromEndToStart = true,
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                    backgroundContent = {
+                                        val color by animateColorAsState(
+                                            when (dismissState.targetValue) {
+                                                SwipeToDismissBoxValue.EndToStart -> colorScheme.error.copy(alpha = 0.8f)
+                                                SwipeToDismissBoxValue.StartToEnd -> colorScheme.primary.copy(alpha = 0.8f)
+                                                SwipeToDismissBoxValue.Settled -> Color.Transparent
+                                            },
+                                            label = "swipeBg"
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(24.dp))
+                                                .background(color)
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd)
+                                                Alignment.CenterStart else Alignment.CenterEnd
+                                        ) {
+                                            when (dismissState.dismissDirection) {
+                                                SwipeToDismissBoxValue.EndToStart -> {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text("Desperdicio", color = Color.White, fontWeight = FontWeight.Bold)
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                                    }
+                                                }
+                                                SwipeToDismissBoxValue.StartToEnd -> {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text("Usar", color = Color.White, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                                else -> {}
+                                            }
+                                        }
+                                    },
+                                    content = {
+                                        RecentlyAddedCard(
+                                            ingrediente = ingrediente,
+                                            categoriaNombre = categoriaNombre,
+                                            onClick = onVerDetalleClick,
+                                            onEditarClick = { ingrediente.id?.let(onEditarClick) },
+                                            onEliminarClick = { ingredienteADesperdicio = ingrediente }
+                                        )
+                                    }
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
                         }

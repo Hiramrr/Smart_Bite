@@ -61,6 +61,17 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
+    fun marcarComoComprado(id: Int, estadoActual: String?) {
+        val nuevoEstado = if (estadoActual == "Comprado") "Pendiente" else "Comprado"
+        viewModelScope.launch {
+            repository.actualizarEstado(id, nuevoEstado).onSuccess {
+                cargarArticulos()
+            }.onFailure {
+                mensajeOperacion = "Error al actualizar: ${it.message}"
+            }
+        }
+    }
+
     fun limpiarMensajeOperacion() {
         mensajeOperacion = null
     }

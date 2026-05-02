@@ -1,5 +1,6 @@
 package com.smart.comida.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -205,8 +207,53 @@ fun DespensaListScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(uiState.ingredientes) { ingrediente ->
-                                IngredienteListItem(ingrediente = ingrediente, onClick = { ingrediente.id?.let(onVerDetalleClick) })
+                            items(uiState.ingredientes, key = { it.id ?: it.hashCode() }) { ingrediente ->
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = { value ->
+                                        when (value) {
+                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                                viewModel.usarIngrediente(ingrediente)
+                                                false
+                                            }
+                                            SwipeToDismissBoxValue.Settled -> false
+                                            else -> false
+                                        }
+                                    }
+                                )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    enableDismissFromStartToEnd = true,
+                                    enableDismissFromEndToStart = false,
+                                    backgroundContent = {
+                                        val color by animateColorAsState(
+                                            when (dismissState.targetValue) {
+                                                SwipeToDismissBoxValue.StartToEnd -> colorScheme.primary.copy(alpha = 0.8f)
+                                                SwipeToDismissBoxValue.Settled -> Color.Transparent
+                                                else -> Color.Transparent
+                                            },
+                                            label = "swipeBg"
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(color)
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Usar", color = Color.White, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    },
+                                    content = {
+                                        IngredienteListItem(ingrediente = ingrediente, onClick = { ingrediente.id?.let(onVerDetalleClick) })
+                                    }
+                                )
                             }
                         }
                     }
@@ -266,7 +313,7 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
         }
 
         if (diasRestantesText.isNotEmpty()) {
-                val textColor = when (diasRestantesText) {
+            val textColor = when (diasRestantesText) {
                 "Caducado" -> MaterialTheme.colorScheme.error
                 "Caduca hoy" -> RedExpiring
                 else -> OrangeExpiring
@@ -278,6 +325,5 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
                 fontWeight = FontWeight.Medium
             )
         }
-        }
-    Divider(color = colorScheme.background)
+    }
 }

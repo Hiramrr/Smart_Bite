@@ -121,6 +121,39 @@ class DespensaViewModel : ViewModel() {
         }
     }
 
+    fun usarIngrediente(ingrediente: Ingrediente) {
+        if (ingrediente.id == null) {
+            mensajeOperacion = "No se pudo usar el ingrediente."
+            return
+        }
+        val nuevaCantidad = ingrediente.cantidad - 1f
+        viewModelScope.launch {
+            if (nuevaCantidad <= 0f) {
+                repository.registrarComoDesperdicio(ingrediente, ingrediente.cantidad).onSuccess {
+                    mensajeOperacion = "Usaste ${ingrediente.nombre}."
+                    cargarIngredientes()
+                }.onFailure {
+                    mensajeOperacion = "Error: ${it.message}"
+                }
+            } else {
+                repository.actualizarIngrediente(
+                    id = ingrediente.id,
+                    nombre = ingrediente.nombre,
+                    cantidad = nuevaCantidad,
+                    unidad = ingrediente.unidad,
+                    fechaCaducidad = ingrediente.fechaCaducidad,
+                    categoriaId = ingrediente.categoriaId,
+                    imagenUrl = ingrediente.imagenUrl
+                ).onSuccess {
+                    mensajeOperacion = "Usaste 1 ${ingrediente.unidad ?: "unidad"} de ${ingrediente.nombre}."
+                    cargarIngredientes()
+                }.onFailure {
+                    mensajeOperacion = "Error al descontar: ${it.message}"
+                }
+            }
+        }
+    }
+
     fun limpiarMensajeOperacion() {
         mensajeOperacion = null
     }

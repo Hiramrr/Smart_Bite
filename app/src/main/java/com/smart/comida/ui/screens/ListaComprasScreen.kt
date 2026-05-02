@@ -1,5 +1,6 @@
 package com.smart.comida.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -195,7 +197,7 @@ fun ListaComprasScreen(
                         }
                     } else {
                         // Progress
-                        val comprados = 0 // Mocked for now or add a boolean logic if DB supports it.
+                        val comprados = articulos.count { it.estado == "Comprado" }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text("Progreso", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
                             Text("$comprados de ${articulos.size}", fontSize = 14.sp, color = colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
@@ -208,36 +210,94 @@ fun ListaComprasScreen(
                         )
 
                         // List
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            items(articulos) { articulo ->
-                                val isChecked = false // Check if database supports 'comprado' boolean. If not, it's just a UI interaction mocking.
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(articulos, key = { it.id ?: it.hashCode() }) { articulo ->
+                                val isChecked = articulo.estado == "Comprado"
                                 val textDecoration = if (isChecked) TextDecoration.LineThrough else null
                                 val textColor = if (isChecked) colorScheme.onSurfaceVariant else colorScheme.onSurface
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = isChecked,
-                                        onClick = { /* TODO toggle */ },
-                                        colors = RadioButtonDefaults.colors(
-                                            selectedColor = colorScheme.primary,
-                                            unselectedColor = colorScheme.outline
-                                        )
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(articulo.nombre, fontSize = 16.sp, color = textColor, fontWeight = FontWeight.Medium, textDecoration = textDecoration)
-                                        articulo.cantidadEsperada?.let {
-                                            val displayCantidad = if (articulo.unidad != null) "$it ${articulo.unidad}" else it.toString()
-                                            Text(displayCantidad, fontSize = 12.sp, color = colorScheme.onSurfaceVariant, textDecoration = textDecoration)
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = { value ->
+                                        when (value) {
+                                            SwipeToDismissBoxValue.EndToStart -> {
+                                                articulo.id?.let { viewModel.eliminarArticulo(it) }
+                                                false
+                                            }
+                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                                articulo.id?.let { viewModel.marcarComoComprado(it, articulo.estado) }
+                                                false
+                                            }
+                                            SwipeToDismissBoxValue.Settled -> false
                                         }
                                     }
-                                    IconButton(onClick = { articulo.id?.let { viewModel.eliminarArticulo(it) } }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = colorScheme.onSurfaceVariant)
+                                )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    enableDismissFromStartToEnd = true,
+                                    enableDismissFromEndToStart = true,
+                                    backgroundContent = {
+                                        val direction = dismissState.dismissDirection
+
+                                        val color by animateColorAsState(
+                                            when (dismissState.targetValue) {
+                                                SwipeToDismissBoxValue.EndToStart -> colorScheme.error.copy(alpha = 0.8f)
+                                                SwipeToDismissBoxValue.StartToEnd -> PrimaryGreen.copy(alpha = 0.8f)
+                                                SwipeToDismissBoxValue.Settled -> Color.Transparent
+                                            },
+                                            label = "bgColor"
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(color)
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd)
+                                                Alignment.CenterStart else Alignment.CenterEnd
+                                        ) {
+                                            when (direction) {
+                                                SwipeToDismissBoxValue.EndToStart -> {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                                                    }
+                                                }
+                                                SwipeToDismissBoxValue.StartToEnd -> {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text(
+                                                            if (isChecked) "Pendiente" else "Comprado",
+                                                            color = Color.White,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
+                                                }
+                                                else -> {}
+                                            }
+                                        }
+                                    },
+                                    content = {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(colorScheme.surface, RoundedCornerShape(16.dp))
+                                                .padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(articulo.nombre, fontSize = 16.sp, color = textColor, fontWeight = FontWeight.Medium, textDecoration = textDecoration)
+                                                articulo.cantidadEsperada?.let {
+                                                    val displayCantidad = if (articulo.unidad != null) "$it ${articulo.unidad}" else it.toString()
+                                                    Text(displayCantidad, fontSize = 12.sp, color = colorScheme.onSurfaceVariant, textDecoration = textDecoration)
+                                                }
+                                            }
+                                        }
                                     }
-                                }
-                                HorizontalDivider(color = colorScheme.surfaceVariant, modifier = Modifier.padding(start = 48.dp))
+                                )
                             }
                         }
                     }

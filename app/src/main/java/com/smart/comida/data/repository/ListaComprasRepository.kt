@@ -44,4 +44,14 @@ class ListaComprasRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun actualizarEstado(id: Int, estado: String): Result<Unit> {
+        return try {
+            SupabaseClient.client.postgrest["lista_compras"]
+                .update(mapOf("estado" to estado)) { filter { eq("id", id) } }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
