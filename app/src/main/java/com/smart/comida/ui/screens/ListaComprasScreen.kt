@@ -193,34 +193,50 @@ fun ListaComprasScreen(
                     }
                 }
                 is ListaComprasUiState.Success -> {
-                    val articulos = uiState.articulos
+                    val todos = uiState.articulos
+                    val articulos = if (selectedTab == 0) todos.filter { it.estado != "Confirmado" } else todos.filter { it.estado == "Confirmado" }
 
                     if (articulos.isEmpty()) {
                         EmptyState(
                             icon = Icons.Default.ShoppingCart,
-                            title = "Tu lista de compras está vacía",
-                            description = "Agrega productos para empezar a planificar tus compras",
+                            title = if (selectedTab == 0) "Tu lista de compras está vacía" else "No hay compras confirmadas",
+                            description = if (selectedTab == 0) "Agrega productos para empezar a planificar tus compras" else "Marca artículos como comprados y confirma la compra para verlos aquí",
                             modifier = Modifier.weight(1f)
                         )
                     } else {
-                        val comprados = articulos.count { it.estado == "Comprado" }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("Progreso", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
-                            Text("$comprados de ${articulos.size}", fontSize = 14.sp, color = colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                        if (selectedTab == 0) {
+                            val pendientes = todos.filter { it.estado != "Confirmado" }
+                            val compradosPendientes = pendientes.count { it.estado == "Comprado" }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Progreso", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
+                                Text("$compradosPendientes de ${pendientes.size}", fontSize = 14.sp, color = colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                            }
+                            LinearProgressIndicator(
+                                progress = { if (pendientes.isEmpty()) 0f else compradosPendientes.toFloat() / pendientes.size.toFloat() },
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = colorScheme.primary,
+                                trackColor = colorScheme.primaryContainer
+                            )
+
+                            val comprados = todos.filter { it.estado == "Comprado" }
+                            if (comprados.isNotEmpty()) {
+                                Button(
+                                    onClick = { viewModel.confirmarCompra() },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                                ) {
+                                    Text("Confirmar compra (${comprados.size})", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
                         }
-                        LinearProgressIndicator(
-                            progress = { if (articulos.isEmpty()) 0f else comprados.toFloat() / articulos.size.toFloat() },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                            color = colorScheme.primary,
-                            trackColor = colorScheme.primaryContainer
-                        )
 
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             items(articulos, key = { it.id ?: it.hashCode() }) { articulo ->
-                                val isChecked = articulo.estado == "Comprado"
+                                val isChecked = articulo.estado == "Comprado" || articulo.estado == "Confirmado"
                                 val textDecoration = if (isChecked) TextDecoration.LineThrough else null
                                 val textColor = if (isChecked) colorScheme.onSurfaceVariant else colorScheme.onSurface
 

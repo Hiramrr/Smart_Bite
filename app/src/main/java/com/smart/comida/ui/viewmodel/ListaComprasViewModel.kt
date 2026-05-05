@@ -72,6 +72,30 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
+    fun confirmarCompra() {
+        val estadoActual = uiState
+        if (estadoActual !is ListaComprasUiState.Success) return
+        val comprados = estadoActual.articulos.filter { it.estado == "Comprado" }
+        if (comprados.isEmpty()) return
+
+        viewModelScope.launch {
+            var errorOcurrido = false
+            for (articulo in comprados) {
+                articulo.id?.let { id ->
+                    repository.actualizarEstado(id, "Confirmado").onFailure {
+                        errorOcurrido = true
+                    }
+                }
+            }
+            if (errorOcurrido) {
+                mensajeOperacion = "Error al confirmar algunas compras."
+            } else {
+                mensajeOperacion = "Compra confirmada."
+            }
+            cargarArticulos()
+        }
+    }
+
     fun limpiarMensajeOperacion() {
         mensajeOperacion = null
     }
