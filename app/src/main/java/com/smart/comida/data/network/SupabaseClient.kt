@@ -6,7 +6,6 @@ import io.github.jan.supabase.serializer.KotlinXSerializer
 import kotlinx.serialization.json.Json
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.gotrue.Auth
-import io.github.jan.supabase.gotrue.ExternalAuthAction
 import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.compose.auth.appleNativeLogin
 import io.github.jan.supabase.compose.auth.googleNativeLogin
@@ -18,11 +17,7 @@ object SupabaseClient {
     ) {
         install(Postgrest.Companion)
         install(Storage)
-        install(Auth) {
-            host = "login-callback"
-            scheme = "com.smart.comida"
-            defaultExternalAuthAction = ExternalAuthAction.CUSTOM_TABS
-        }
+        install(Auth)
         install(ComposeAuth) {
             googleNativeLogin(serverClientId = "263244792721-fe0dih9nd1svpqqaq2v55aomfqpv49mf.apps.googleusercontent.com")
         }

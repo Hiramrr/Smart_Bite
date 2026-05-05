@@ -31,7 +31,6 @@ import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
 import io.github.jan.supabase.compose.auth.composeAuth
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -39,7 +38,6 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
     val signInWithGoogle = SupabaseClient.client.composeAuth.rememberSignInWithGoogle(
@@ -52,17 +50,9 @@ fun LoginScreen(
                     onLoginSuccess()
                 }
                 is NativeSignInResult.Error -> {
-                    Log.e("LoginScreen", "Auth: Native Login Error - ${result.message}, falling back to web OAuth")
-                    isLoading = true
-                    coroutineScope.launch {
-                        try {
-                            SupabaseClient.client.auth.signInWith(Google)
-                        } catch (e: Exception) {
-                            Log.e("LoginScreen", "Auth: Web Login Exception - ${e.message}", e)
-                            isLoading = false
-                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    Log.e("LoginScreen", "Auth: Native Login Error - ${result.message}")
+                    isLoading = false
+                    Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
                 }
                 is NativeSignInResult.ClosedByUser -> {
                     Log.d("LoginScreen", "Auth: Native Login Closed By User")
