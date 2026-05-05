@@ -13,18 +13,23 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.smart.comida.data.model.ArticuloCompra
+import com.smart.comida.ui.components.EmptyState
+import com.smart.comida.ui.components.ShimmerComprasList
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.ListaComprasUiState
 import com.smart.comida.ui.viewmodel.ListaComprasViewModel
@@ -159,6 +164,8 @@ fun ListaComprasScreen(
             }
         }
     ) { paddingValues ->
+        val haptic = LocalHapticFeedback.current
+
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -166,7 +173,6 @@ fun ListaComprasScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Tabs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,12 +185,10 @@ fun ListaComprasScreen(
 
             when (uiState) {
                 is ListaComprasUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = colorScheme.primary)
-                    }
+                    ShimmerComprasList(count = 6, modifier = Modifier.weight(1f))
                 }
                 is ListaComprasUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.weight(1f).padding(32.dp), contentAlignment = Alignment.Center) {
                         Text(text = uiState.message, color = colorScheme.error)
                     }
                 }
@@ -192,11 +196,13 @@ fun ListaComprasScreen(
                     val articulos = uiState.articulos
 
                     if (articulos.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize().padding(bottom = 56.dp), contentAlignment = Alignment.Center) {
-                            Text("Tu lista de compras está vacía.", color = colorScheme.onSurfaceVariant)
-                        }
+                        EmptyState(
+                            icon = Icons.Default.ShoppingCart,
+                            title = "Tu lista de compras está vacía",
+                            description = "Agrega productos para empezar a planificar tus compras",
+                            modifier = Modifier.weight(1f)
+                        )
                     } else {
-                        // Progress
                         val comprados = articulos.count { it.estado == "Comprado" }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text("Progreso", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
@@ -209,8 +215,10 @@ fun ListaComprasScreen(
                             trackColor = colorScheme.primaryContainer
                         )
 
-                        // List
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
                             items(articulos, key = { it.id ?: it.hashCode() }) { articulo ->
                                 val isChecked = articulo.estado == "Comprado"
                                 val textDecoration = if (isChecked) TextDecoration.LineThrough else null
@@ -220,10 +228,12 @@ fun ListaComprasScreen(
                                     confirmValueChange = { value ->
                                         when (value) {
                                             SwipeToDismissBoxValue.EndToStart -> {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 articulo.id?.let { viewModel.eliminarArticulo(it) }
                                                 false
                                             }
                                             SwipeToDismissBoxValue.StartToEnd -> {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 articulo.id?.let { viewModel.marcarComoComprado(it, articulo.estado) }
                                                 false
                                             }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -23,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.smartbite.data.Recipe
+import com.smart.comida.ui.components.EmptyState
+import com.smart.comida.ui.components.ShimmerRecipeGrid
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.RecipeUiState
 import com.smart.comida.ui.viewmodel.RecipeViewModel
@@ -70,7 +73,6 @@ fun RecipeListScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Search Bar
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -98,9 +100,7 @@ fun RecipeListScreen(
 
             when (uiState) {
                 is RecipeUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = colorScheme.primary)
-                    }
+                    ShimmerRecipeGrid(count = 6, modifier = Modifier.fillMaxWidth())
                 }
                 is RecipeUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -113,25 +113,31 @@ fun RecipeListScreen(
                 }
                 is RecipeUiState.SearchSuccess -> {
                     val recetas = (uiState as RecipeUiState.SearchSuccess).recipes
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(recetas) { receta ->
-                            RecipeCard(receta = receta, onClick = { onRecetaClick(receta.id) })
+                    if (recetas.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Restaurant,
+                            title = "Sin resultados",
+                            description = "Intenta con otro ingrediente o nombre"
+                        )
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(recetas) { receta ->
+                                RecipeCard(receta = receta, onClick = { onRecetaClick(receta.id) })
+                            }
                         }
                     }
                 }
                 else -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            "Busca recetas por ingrediente o nombre",
-                            color = colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    EmptyState(
+                        icon = Icons.Default.Restaurant,
+                        title = "Busca recetas",
+                        description = "Encuentra recetas por ingrediente o nombre"
+                    )
                 }
             }
         }

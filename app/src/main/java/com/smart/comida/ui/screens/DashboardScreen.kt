@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.smart.comida.ui.components.ShimmerResumenCards
+import com.smart.comida.ui.components.ShimmerIngredientVencerCard
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -234,9 +236,27 @@ fun DashboardScreen(
             }
 
             // Por vencer pronto
-            if (uiState is DespensaUiState.Success) {
-                val ingredientes = uiState.ingredientes.take(4) // Mock taking first 4
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            when (uiState) {
+                is DespensaUiState.Loading -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Por vencer pronto", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+                        }
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(4) {
+                                ShimmerIngredientVencerCard()
+                            }
+                        }
+                    }
+                }
+                is DespensaUiState.Error -> { /* hide section on error */ }
+                is DespensaUiState.Success -> {
+                    val ingredientes = uiState.ingredientes.take(4)
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,6 +277,7 @@ fun DashboardScreen(
                             IngredienteVencerCard(ingrediente) { ingrediente.id?.let(onVerDetalleClick) }
                         }
                     }
+                }
                 }
             }
         }

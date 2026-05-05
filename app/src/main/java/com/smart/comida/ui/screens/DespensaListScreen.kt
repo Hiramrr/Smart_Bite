@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
@@ -23,12 +24,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.smart.comida.data.model.Ingrediente
+import com.smart.comida.ui.components.EmptyState
+import com.smart.comida.ui.components.ShimmerIngredientsList
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
@@ -77,8 +82,9 @@ fun DespensaListScreen(
             )
         }
     ) { paddingValues ->
+        val haptic = LocalHapticFeedback.current
+
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            // Category Chips
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -88,8 +94,8 @@ fun DespensaListScreen(
                 item {
                     FilterChip(
                         selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null,
-                        onClick = { 
-                            viewModel.seleccionarFiltroCategoria(null) 
+                        onClick = {
+                            viewModel.seleccionarFiltroCategoria(null)
                             viewModel.seleccionarFiltroCaducidad(null)
                         },
                         label = { Text("Todos") },
@@ -99,19 +105,24 @@ fun DespensaListScreen(
                             containerColor = colorScheme.background,
                             labelColor = colorScheme.onSurfaceVariant
                         ),
-                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null, borderColor = colorScheme.outline),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = viewModel.filtroSeleccionado == null && viewModel.diasFiltroCaducidad == null,
+                            borderColor = colorScheme.outline
+                        ),
                         shape = CircleShape
                     )
                 }
-                
-                // Filtro de Caducidad
+
                 item {
                     Box {
                         FilterChip(
                             selected = viewModel.diasFiltroCaducidad != null,
                             onClick = { expandirCaducidad = true },
-                            label = { 
-                                Text(if (viewModel.diasFiltroCaducidad != null) "Caducan: ${viewModel.diasFiltroCaducidad}d" else "Caducidad") 
+                            label = {
+                                Text(
+                                    if (viewModel.diasFiltroCaducidad != null) "Caducan: ${viewModel.diasFiltroCaducidad}d" else "Caducidad"
+                                )
                             },
                             leadingIcon = {
                                 Icon(
@@ -135,10 +146,14 @@ fun DespensaListScreen(
                                 containerColor = colorScheme.background,
                                 labelColor = colorScheme.onSurfaceVariant
                             ),
-                            border = FilterChipDefaults.filterChipBorder(enabled = true, selected = viewModel.diasFiltroCaducidad != null, borderColor = colorScheme.outline),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = viewModel.diasFiltroCaducidad != null,
+                                borderColor = colorScheme.outline
+                            ),
                             shape = CircleShape
                         )
-                        
+
                         DropdownMenu(
                             expanded = expandirCaducidad,
                             onDismissRequest = { expandirCaducidad = false }
@@ -153,7 +168,7 @@ fun DespensaListScreen(
                                 )
                             }
                             if (viewModel.diasFiltroCaducidad != null) {
-                                Divider()
+                                HorizontalDivider()
                                 DropdownMenuItem(
                                     text = { Text("Quitar filtro") },
                                     onClick = {
@@ -166,7 +181,7 @@ fun DespensaListScreen(
                     }
                 }
 
-                    items(categorias) { categoria ->
+                items(categorias) { categoria ->
                     val isSelected = viewModel.filtroSeleccionado?.id == categoria.id
                     FilterChip(
                         selected = isSelected,
@@ -178,29 +193,34 @@ fun DespensaListScreen(
                             containerColor = colorScheme.background,
                             labelColor = colorScheme.onSurfaceVariant
                         ),
-                        border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSelected, borderColor = colorScheme.outline),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = colorScheme.outline
+                        ),
                         shape = CircleShape
                     )
                 }
             }
 
-            // List of Ingredients
             when (uiState) {
                 is DespensaUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = colorScheme.primary)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        ShimmerIngredientsList(count = 8)
                     }
                 }
                 is DespensaUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                         Text(uiState.message, color = colorScheme.error)
                     }
                 }
                 is DespensaUiState.Success -> {
                     if (uiState.ingredientes.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No se encontraron ingredientes.", color = colorScheme.onSurfaceVariant)
-                        }
+                        EmptyState(
+                            icon = Icons.Default.Kitchen,
+                            title = "No se encontraron ingredientes",
+                            description = "Agrega productos a tu despensa para empezar"
+                        )
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -212,10 +232,10 @@ fun DespensaListScreen(
                                     confirmValueChange = { value ->
                                         when (value) {
                                             SwipeToDismissBoxValue.StartToEnd -> {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 viewModel.usarIngrediente(ingrediente)
                                                 false
                                             }
-                                            SwipeToDismissBoxValue.Settled -> false
                                             else -> false
                                         }
                                     }
@@ -244,14 +264,22 @@ fun DespensaListScreen(
                                             contentAlignment = Alignment.CenterStart
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text("Usar", color = Color.White, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                     },
                                     content = {
-                                        IngredienteListItem(ingrediente = ingrediente, onClick = { ingrediente.id?.let(onVerDetalleClick) })
+                                        IngredienteListItem(
+                                            ingrediente = ingrediente,
+                                            onClick = { ingrediente.id?.let(onVerDetalleClick) }
+                                        )
                                     }
                                 )
                             }

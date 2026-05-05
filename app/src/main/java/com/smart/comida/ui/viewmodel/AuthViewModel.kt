@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smart.comida.data.network.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.providers.Google
+import io.github.jan.supabase.gotrue.SessionStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -30,10 +30,25 @@ class AuthViewModel : ViewModel() {
 
     private fun checkSession() {
         viewModelScope.launch {
-            val session = SupabaseClient.client.auth.currentSessionOrNull()
-            Log.d("AuthViewModel", "checkSession: session is ${if (session != null) "active" else "null"}")
-            _isUserLoggedIn.value = session != null
-            loadUserProfile()
+            SupabaseClient.client.auth.sessionStatus.collect { status ->
+                Log.d("AuthViewModel", "SessionStatus: $status")
+                when (status) {
+                    is SessionStatus.Authenticated -> {
+                        _isUserLoggedIn.value = true
+                        loadUserProfile()
+                    }
+                    is SessionStatus.NotAuthenticated -> {
+                        _isUserLoggedIn.value = false
+                    }
+                    is SessionStatus.LoadingFromStorage -> {
+                        // Keep null (show loading spinner) while checking storage
+                    }
+                    is SessionStatus.NetworkError -> {
+                        Log.e("AuthViewModel", "Network error checking session")
+                        _isUserLoggedIn.value = false
+                    }
+                }
+            }
         }
     }
 

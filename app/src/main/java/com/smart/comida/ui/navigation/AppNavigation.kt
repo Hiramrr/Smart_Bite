@@ -52,6 +52,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 launchSingleTop = true
             }
         }
+        if (isUserLoggedIn == true && currentRoute == "login") {
+            navController.navigate("dashboard") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
     }
 
     if (isUserLoggedIn == null) {
@@ -174,7 +179,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 .padding(if (currentRoute == "login") androidx.compose.foundation.layout.PaddingValues(0.dp) else innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) {
-            composable("login") {
+            composable(
+                "login",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 LoginScreen(
                     viewModel = authViewModel,
                     onLoginSuccess = {
@@ -185,7 +196,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable("dashboard") {
+            composable(
+                "dashboard",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 val userName by authViewModel.userName.collectAsState()
                 DashboardScreen(
                     viewModel = despensaViewModelCompartido,
@@ -196,7 +213,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable("despensa_list") {
+            composable(
+                "despensa_list",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 DespensaListScreen(
                     viewModel = despensaViewModelCompartido,
                     onBackClick = { navController.popBackStack() },
@@ -205,7 +228,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable("agregar") {
+            composable(
+                "agregar",
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
+            ) {
                 AgregarIngredienteScreen(
                     onVolver = { navController.popBackStack() },
                     onGuardadoExitoso = {
@@ -217,7 +246,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
 
             composable(
                 route = "editar/{id}",
-                arguments = listOf(navArgument("id") { type = NavType.IntType })
+                arguments = listOf(navArgument("id") { type = NavType.IntType }),
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
                 EditarIngredienteScreen(
@@ -232,7 +265,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
 
             composable(
                 route = "detalle_ingrediente/{id}",
-                arguments = listOf(navArgument("id") { type = NavType.IntType })
+                arguments = listOf(navArgument("id") { type = NavType.IntType }),
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
                 DetalleIngredienteScreen(
@@ -256,7 +293,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             
             composable(
                 route = "detalle_receta/{id}",
-                arguments = listOf(navArgument("id") { type = NavType.IntType })
+                arguments = listOf(navArgument("id") { type = NavType.IntType }),
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
                 DetalleRecetaScreen(
@@ -267,7 +308,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
 
             composable(
                 route = "descontar/{id}",
-                arguments = listOf(navArgument("id") { type = NavType.IntType })
+                arguments = listOf(navArgument("id") { type = NavType.IntType }),
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
                 DescontarCantidadScreen(
@@ -282,7 +327,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
 
             composable(
                 route = "registrar_desperdicio/{id}",
-                arguments = listOf(navArgument("id") { type = NavType.IntType })
+                arguments = listOf(navArgument("id") { type = NavType.IntType }),
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
                 RegistrarDesperdicioScreen(
@@ -295,19 +344,37 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable("lista_compras") {
+            composable(
+                "lista_compras",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 ListaComprasScreen(
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
 
-            composable("estadisticas") {
+            composable(
+                "estadisticas",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 EstadisticasScreen(
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
 
-            composable("settings") {
+            composable(
+                "settings",
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
+            ) {
                 SettingsScreen(
                     onVolver = { navController.popBackStack() },
                     themeViewModel = themeViewModel,
@@ -315,7 +382,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable("recetas") {
+            composable(
+                "recetas",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 RecipeListScreen(
                     onVolver = { navController.popBackStack() },
                     onRecetaClick = { id -> navController.navigate("detalle_receta/$id") },
@@ -323,7 +396,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable("profile") {
+            composable(
+                "profile",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) },
+                popEnterTransition = { fadeEnterTransition(this) },
+                popExitTransition = { fadeExitTransition(this) }
+            ) {
                 val userName by authViewModel.userName.collectAsState()
                 val userEmail by authViewModel.userEmail.collectAsState()
                 val userAvatarUrl by authViewModel.userAvatarUrl.collectAsState()
