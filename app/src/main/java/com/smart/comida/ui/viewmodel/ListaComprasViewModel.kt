@@ -29,6 +29,27 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
+    fun editarArticulo(id: Int, nombre: String, cantidadEsperadaInput: String) {
+        if (nombre.isBlank()) {
+            mensajeOperacion = "El nombre del producto no puede estar vacío."
+            return
+        }
+
+        val matchResult = Regex("^([\\d.,]+)\\s*(.*)$").find(cantidadEsperadaInput.trim())
+        val cantidad = matchResult?.groups?.get(1)?.value?.replace(',', '.')?.toDoubleOrNull()
+        val unidad = matchResult?.groups?.get(2)?.value?.takeIf { it.isNotBlank() }
+
+        viewModelScope.launch {
+            val resultado = repository.actualizarArticulo(id, nombre, cantidad, unidad)
+            resultado.onSuccess {
+                mensajeOperacion = "Artículo actualizado."
+                cargarArticulos()
+            }.onFailure { error ->
+                mensajeOperacion = "Error al actualizar: ${error.message ?: "Intenta nuevamente."}"
+            }
+        }
+    }
+
     fun agregarArticulo(nombre: String, cantidadEsperadaInput: String) {
         if (nombre.isBlank()) {
             mensajeOperacion = "El nombre del producto no puede estar vacío."

@@ -2,6 +2,7 @@ package com.smart.comida.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,7 +45,9 @@ fun ListaComprasScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     
     var selectedTab by remember { mutableStateOf(0) }
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    var mostrarDialogoNuevo by remember { mutableStateOf(false) }
+    var articuloEditando by remember { mutableStateOf<ArticuloCompra?>(null) }
+    var dialogKey by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarArticulos()
@@ -57,14 +60,21 @@ fun ListaComprasScreen(
         }
     }
 
-    if (mostrarDialogo) {
-        var nombre by remember { mutableStateOf("") }
-        var cantidad by remember { mutableStateOf("") }
-        var errorNombre by remember { mutableStateOf(false) }
+    val edit = articuloEditando
+    if (mostrarDialogoNuevo || edit != null) {
+        val esNuevo = mostrarDialogoNuevo
+        val cantidadInicial = if (!esNuevo && edit != null && edit.cantidadEsperada != null) {
+            val c = edit.cantidadEsperada
+            val cStr = if (c == c.toLong().toDouble()) c.toLong().toString() else c.toString()
+            if (edit.unidad != null) "$cStr ${edit.unidad}" else cStr
+        } else ""
+        var nombre by remember(dialogKey) { mutableStateOf(if (esNuevo) "" else edit?.nombre ?: "") }
+        var cantidad by remember(dialogKey) { mutableStateOf(cantidadInicial) }
+        var errorNombre by remember(dialogKey) { mutableStateOf(false) }
 
         AlertDialog(
-            onDismissRequest = { mostrarDialogo = false },
-            title = { Text("Agregar a la lista", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
+            onDismissRequest = { mostrarDialogoNuevo = false; articuloEditando = null },
+            title = { Text(if (esNuevo) "Agregar a la lista" else "Editar artículo", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground) },
             text = {
                 Column {
                     OutlinedTextField(
@@ -104,18 +114,21 @@ fun ListaComprasScreen(
                     onClick = {
                         if (nombre.isBlank()) {
                             errorNombre = true
-                        } else {
+                        } else if (esNuevo) {
                             viewModel.agregarArticulo(nombre, cantidad)
-                            mostrarDialogo = false
+                            mostrarDialogoNuevo = false
+                        } else {
+                            edit?.id?.let { viewModel.editarArticulo(it, nombre, cantidad) }
+                            articuloEditando = null
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Agregar", color = MaterialTheme.colorScheme.onPrimary)
+                    Text(if (esNuevo) "Agregar" else "Guardar", color = MaterialTheme.colorScheme.onPrimary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogo = false }) {
+                TextButton(onClick = { mostrarDialogoNuevo = false; articuloEditando = null }) {
                     Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
@@ -152,7 +165,7 @@ fun ListaComprasScreen(
         bottomBar = {
             PaddingValues(16.dp).let { padding ->
                 Button(
-                    onClick = { mostrarDialogo = true },
+                    onClick = { mostrarDialogoNuevo = true; dialogKey++ },
                     modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
                     shape = RoundedCornerShape(16.dp)
@@ -310,6 +323,7 @@ fun ListaComprasScreen(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
+                                                .clickable { articuloEditando = articulo; dialogKey++ }
                                                 .background(colorScheme.surface, RoundedCornerShape(16.dp))
                                                 .padding(16.dp),
                                             verticalAlignment = Alignment.CenterVertically

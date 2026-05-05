@@ -3,6 +3,9 @@ package com.smart.comida.data.repository
 import com.smart.comida.data.model.ArticuloCompra
 import com.smart.comida.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.JsonNull
 
 class ListaComprasRepository {
 
@@ -49,6 +52,21 @@ class ListaComprasRepository {
         return try {
             SupabaseClient.client.postgrest["lista_compras"]
                 .update(mapOf("estado" to estado)) { filter { eq("id", id) } }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun actualizarArticulo(id: Int, nombre: String, cantidadEsperada: Double?, unidad: String?): Result<Unit> {
+        return try {
+            val body = buildJsonObject {
+                put("nombre", nombre)
+                if (cantidadEsperada != null) put("cantidad_esperada", cantidadEsperada) else put("cantidad_esperada", JsonNull)
+                if (unidad != null) put("unidad", unidad) else put("unidad", JsonNull)
+            }
+            SupabaseClient.client.postgrest["lista_compras"]
+                .update(body) { filter { eq("id", id) } }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
