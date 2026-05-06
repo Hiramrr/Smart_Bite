@@ -39,17 +39,20 @@ import java.util.*
 fun AgregarIngredienteScreen(
     onVolver: () -> Unit,
     onGuardadoExitoso: () -> Unit,
-    viewModel: IngredienteViewModel = viewModel()
+    viewModel: IngredienteViewModel = viewModel(),
+    prefilledNombre: String? = null,
+    prefilledCantidad: String? = null,
+    prefilledUnidad: String? = null
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val colorScheme = MaterialTheme.colorScheme
 
     // Estados del formulario
-    var nombre by remember { mutableStateOf("") }
+    var nombre by remember { mutableStateOf(prefilledNombre ?: "") }
     var categoriaSeleccionada by remember { mutableStateOf<com.smart.comida.data.model.Categoria?>(null) }
-    var cantidad by remember { mutableStateOf("") }
-    var unidad by remember { mutableStateOf("") }
+    var cantidad by remember { mutableStateOf(prefilledCantidad ?: "") }
+    var unidad by remember { mutableStateOf(prefilledUnidad ?: "") }
     var fechaCaducidad by remember { mutableStateOf("") }
     var notas by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }

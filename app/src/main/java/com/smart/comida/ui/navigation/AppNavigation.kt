@@ -238,18 +238,30 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             }
 
             composable(
-                "agregar",
+                route = "agregar?nombre={nombre}&cantidad={cantidad}&unidad={unidad}",
+                arguments = listOf(
+                    navArgument("nombre") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("cantidad") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("unidad") { type = NavType.StringType; nullable = true; defaultValue = null }
+                ),
                 enterTransition = { slideEnterTransition(this) },
                 exitTransition = { slideExitTransition(this) },
                 popEnterTransition = { slidePopEnterTransition(this) },
                 popExitTransition = { slidePopExitTransition(this) }
-            ) {
+            ) { backStackEntry ->
+                val nombre = backStackEntry.arguments?.getString("nombre")
+                val cantidad = backStackEntry.arguments?.getString("cantidad")
+                val unidad = backStackEntry.arguments?.getString("unidad")
+
                 AgregarIngredienteScreen(
                     onVolver = { navController.popBackStack() },
                     onGuardadoExitoso = {
                         despensaViewModelCompartido.cargarIngredientes()
                         navController.popBackStack()
-                    }
+                    },
+                    prefilledNombre = nombre,
+                    prefilledCantidad = cantidad,
+                    prefilledUnidad = unidad
                 )
             }
 
@@ -363,7 +375,10 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 popExitTransition = { fadeExitTransition(this) }
             ) {
                 ListaComprasScreen(
-                    onSettingsClick = { navController.navigate("settings") }
+                    onSettingsClick = { navController.navigate("settings") },
+                    onNavigateToAgregar = { nombre, cantidad, unidad ->
+                        navController.navigate("agregar?nombre=$nombre&cantidad=$cantidad&unidad=$unidad")
+                    }
                 )
             }
 
