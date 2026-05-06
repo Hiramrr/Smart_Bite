@@ -65,11 +65,14 @@ fun ListaComprasScreen(
         val esNuevo = mostrarDialogoNuevo
         val cantidadInicial = if (!esNuevo && edit != null && edit.cantidadEsperada != null) {
             val c = edit.cantidadEsperada
-            val cStr = if (c == c.toLong().toDouble()) c.toLong().toString() else c.toString()
-            if (edit.unidad != null) "$cStr ${edit.unidad}" else cStr
+            if (c == c.toLong().toDouble()) c.toLong().toString() else c.toString()
         } else ""
+        
         var nombre by remember(dialogKey) { mutableStateOf(if (esNuevo) "" else edit?.nombre ?: "") }
         var cantidad by remember(dialogKey) { mutableStateOf(cantidadInicial) }
+        val unidades = listOf("Kg", "Gramos", "Litros", "Piezas")
+        var unidadSeleccionada by remember(dialogKey) { mutableStateOf(if (esNuevo) unidades[0] else edit?.unidad ?: unidades[0]) }
+        var unidadExpanded by remember { mutableStateOf(false) }
         var errorNombre by remember(dialogKey) { mutableStateOf(false) }
 
         AlertDialog(
@@ -96,17 +99,49 @@ fun ListaComprasScreen(
                         Text("El nombre es obligatorio", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = cantidad,
-                        onValueChange = { cantidad = it },
-                        label = { Text("Cantidad esperada (Ej: 2 kg)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = cantidad,
+                            onValueChange = { cantidad = it },
+                            label = { Text("Cantidad") },
+                            modifier = Modifier.weight(1f),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
+                            )
                         )
-                    )
+                        
+                        ExposedDropdownMenuBox(
+                            expanded = unidadExpanded,
+                            onExpandedChange = { unidadExpanded = !unidadExpanded },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = unidadSeleccionada,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Unidad") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unidadExpanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = unidadExpanded,
+                                onDismissRequest = { unidadExpanded = false }
+                            ) {
+                                unidades.forEach { unidad ->
+                                    DropdownMenuItem(
+                                        text = { Text(unidad) },
+                                        onClick = {
+                                            unidadSeleccionada = unidad
+                                            unidadExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -115,10 +150,10 @@ fun ListaComprasScreen(
                         if (nombre.isBlank()) {
                             errorNombre = true
                         } else if (esNuevo) {
-                            viewModel.agregarArticulo(nombre, cantidad)
+                            viewModel.agregarArticulo(nombre, cantidad, unidadSeleccionada)
                             mostrarDialogoNuevo = false
                         } else {
-                            edit?.id?.let { viewModel.editarArticulo(it, nombre, cantidad) }
+                            edit?.id?.let { viewModel.editarArticulo(it, nombre, cantidad, unidadSeleccionada) }
                             articuloEditando = null
                         }
                     },

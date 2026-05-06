@@ -29,15 +29,13 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
-    fun editarArticulo(id: Int, nombre: String, cantidadEsperadaInput: String) {
+    fun editarArticulo(id: Int, nombre: String, cantidadInput: String, unidad: String?) {
         if (nombre.isBlank()) {
             mensajeOperacion = "El nombre del producto no puede estar vacío."
             return
         }
 
-        val matchResult = Regex("^([\\d.,]+)\\s*(.*)$").find(cantidadEsperadaInput.trim())
-        val cantidad = matchResult?.groups?.get(1)?.value?.replace(',', '.')?.toDoubleOrNull()
-        val unidad = matchResult?.groups?.get(2)?.value?.takeIf { it.isNotBlank() }
+        val cantidad = cantidadInput.replace(',', '.').toDoubleOrNull()
 
         viewModelScope.launch {
             val resultado = repository.actualizarArticulo(id, nombre, cantidad, unidad)
@@ -50,16 +48,13 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
-    fun agregarArticulo(nombre: String, cantidadEsperadaInput: String) {
+    fun agregarArticulo(nombre: String, cantidadInput: String, unidad: String?) {
         if (nombre.isBlank()) {
             mensajeOperacion = "El nombre del producto no puede estar vacío."
             return
         }
 
-        // Parsear número y unidad de "2 kg", "1.5 litros", etc.
-        val matchResult = Regex("^([\\d.,]+)\\s*(.*)$").find(cantidadEsperadaInput.trim())
-        val cantidad = matchResult?.groups?.get(1)?.value?.replace(',', '.')?.toDoubleOrNull()
-        val unidad = matchResult?.groups?.get(2)?.value?.takeIf { it.isNotBlank() }
+        val cantidad = cantidadInput.replace(',', '.').toDoubleOrNull()
 
         viewModelScope.launch {
             val resultado = repository.agregarArticulo(nombre, cantidad, unidad)
