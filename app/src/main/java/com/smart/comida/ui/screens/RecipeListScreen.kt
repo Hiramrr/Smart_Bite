@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -35,6 +36,7 @@ import com.smart.comida.ui.viewmodel.RecipeViewModel
 fun RecipeListScreen(
     onVolver: () -> Unit,
     onRecetaClick: (Int) -> Unit,
+    onFavoritasClick: () -> Unit, // <-- Nuevo evento de navegación inyectado
     recipeViewModel: RecipeViewModel = viewModel(),
     onSettingsClick: () -> Unit = {}
 ) {
@@ -54,6 +56,14 @@ fun RecipeListScreen(
                     }
                 },
                 actions = {
+                    // <-- Nuevo botón de acceso rápido al recetario
+                    IconButton(onClick = onFavoritasClick) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Mi Recetario",
+                            tint = colorScheme.primary // Resalta el color para invitar a la acción
+                        )
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Default.Settings, contentDescription = "Configuración")
                     }
@@ -66,6 +76,7 @@ fun RecipeListScreen(
             )
         }
     ) { paddingValues ->
+        // ... (Tu código de contenido se mantiene exactamente igual)
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -74,6 +85,7 @@ fun RecipeListScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
+                // ... (Sin cambios)
                 value = query,
                 onValueChange = { query = it },
                 placeholder = { Text("Buscar receta o ingrediente...", color = colorScheme.onSurfaceVariant) },
@@ -90,6 +102,7 @@ fun RecipeListScreen(
             )
 
             Button(
+                // ... (Sin cambios)
                 onClick = { if (query.isNotBlank()) recipeViewModel.searchRecipes(query) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
@@ -121,6 +134,7 @@ fun RecipeListScreen(
                         )
                     } else {
                         LazyVerticalGrid(
+                            // ... (Sin cambios)
                             columns = GridCells.Fixed(2),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),

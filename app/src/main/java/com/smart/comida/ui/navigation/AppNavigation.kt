@@ -33,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smart.comida.data.local.AppDatabase
 import com.smart.comida.data.repository.FavoritesRepositoryImpl
+import com.smart.comida.presentation.ui.RecipeBookScreen
 import com.smart.comida.ui.screens.*
 import com.smart.comida.ui.theme.PrimaryGreen
 import com.smart.comida.ui.viewmodel.AuthViewModel
@@ -393,7 +394,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             }
 
             composable(
-                "recetas",
+                route = "recetas", // Se conserva la ruta original
                 enterTransition = { fadeEnterTransition(this) },
                 exitTransition = { fadeExitTransition(this) },
                 popEnterTransition = { fadeEnterTransition(this) },
@@ -401,8 +402,16 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             ) {
                 RecipeListScreen(
                     onVolver = { navController.popBackStack() },
-                    onRecetaClick = { id -> navController.navigate("detalle_receta/$id") },
-                    onSettingsClick = { navController.navigate("settings") }
+                    onRecetaClick = { id ->
+                        navController.navigate("detalle_receta/$id")
+                    },
+                    onFavoritasClick = {
+                        // Inyectamos la navegación hacia la nueva pantalla local
+                        navController.navigate("recetario")
+                    },
+                    onSettingsClick = {
+                        navController.navigate("settings")
+                    }
                 )
             }
 
@@ -422,6 +431,18 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     userAvatarUrl = userAvatarUrl,
                     onSettingsClick = { navController.navigate("settings") },
                     onSignOut = { authViewModel.signOut() }
+                )
+            }
+
+            composable(route = "recetario") {
+                RecipeBookScreen(
+                    favoritesRepository = favoritesRepository,
+                    onNavigateToRecipeDetail = { id ->
+                        navController.navigate("detalle_receta/$id")
+                    },
+                    onNavigateToSearch = {
+                        navController.navigate("buscar_recetas")
+                    }
                 )
             }
         }
