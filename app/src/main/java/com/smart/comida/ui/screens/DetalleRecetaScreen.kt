@@ -13,6 +13,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.google.gson.Gson // Importación de Gson para serializar
+import com.smart.comida.data.local.entity.FavoriteRecipeEntity
+import com.smart.comida.domain.repository.FavoritesRepository
+import com.smart.comida.presentation.components.FavoriteToggleButton
+import com.smart.comida.presentation.viewmodel.RecipeDetailViewModel
+import com.smart.comida.presentation.viewmodel.RecipeDetailViewModelFactory
 import com.smart.comida.ui.viewmodel.RecipeUiState
 import com.smart.comida.ui.viewmodel.RecipeViewModel
 
@@ -21,9 +27,19 @@ import com.smart.comida.ui.viewmodel.RecipeViewModel
 fun DetalleRecetaScreen(
     recetaId: Int,
     onVolver: () -> Unit,
-    recipeViewModel: RecipeViewModel = viewModel()
+    recipeViewModel: RecipeViewModel = viewModel(),
+    favoritesRepository: FavoritesRepository // Inyectado desde tu NavHost
 ) {
+    // 1. Estado de red (Spoonacular)
     val uiState by recipeViewModel.uiState.collectAsState()
+
+    // 2. Instanciación del ViewModel Local (Room) usando la Factoría
+    val favoriteViewModel: RecipeDetailViewModel = viewModel(
+        factory = RecipeDetailViewModelFactory(favoritesRepository, recetaId)
+    )
+
+    // 3. Estado reactivo de la BD local (Flow -> State)
+    val isFavorite by favoriteViewModel.isFavorite.collectAsState()
 
     // Buscamos los detalles de la receta al abrir la pantalla (CU-09)
     LaunchedEffect(recetaId) {
@@ -36,6 +52,29 @@ fun DetalleRecetaScreen(
                 title = { Text("Preparación") },
                 navigationIcon = {
                     IconButton(onClick = onVolver) { Icon(Icons.Default.ArrowBack, "Volver") }
+                },
+                actions = {
+                    // Solo habilitamos el botón si tenemos la data completa para guardar
+                    if (uiState is RecipeUiState.DetailSuccess) {
+                        val receta = (uiState as RecipeUiState.DetailSuccess).recipe
+
+                        FavoriteToggleButton(
+                            isFavorite = isFavorite,
+                            onToggleClick = {
+                                // Serializamos el payload exacto devuelto por la API para uso Offline
+                                val recipeJson = Gson().toJson(receta)
+
+                                val entity = FavoriteRecipeEntity(
+                                    externalRecipeId = recetaId,
+                                    title = receta.title,
+                                    imageUrl = receta.image ?: "",
+                                    recipeDataJson = recipeJson
+                                )
+                                // Despachamos el evento UDF hacia el ViewModel
+                                favoriteViewModel.onToggleFavorite(entity)
+                            }
+                        )
+                    }
                 }
             )
         }
@@ -63,7 +102,7 @@ fun DetalleRecetaScreen(
                             Text("Ingredientes", style = MaterialTheme.typography.titleLarge)
                         }
 
-                        // Imprimir ingredientes (El traductor iría aquí en el futuro)
+                        // Imprimir ingredientes
                         items(receta.extendedIngredients) { ingrediente ->
                             Text("• ${ingrediente.original}", modifier = Modifier.padding(vertical = 4.dp))
                         }
@@ -73,7 +112,7 @@ fun DetalleRecetaScreen(
                             Text("Pasos", style = MaterialTheme.typography.titleLarge)
                         }
 
-                        // Imprimir pasos (Spoonacular manda las instrucciones como una lista dentro de otra)
+                        // Imprimir pasos
                         if (receta.analyzedInstructions.isNotEmpty()) {
                             items(receta.analyzedInstructions[0].steps) { paso ->
                                 Text("${paso.number}. ${paso.step}", modifier = Modifier.padding(vertical = 8.dp))

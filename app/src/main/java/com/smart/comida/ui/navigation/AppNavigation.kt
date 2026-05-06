@@ -17,9 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -29,6 +31,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.smart.comida.data.local.AppDatabase
+import com.smart.comida.data.repository.FavoritesRepositoryImpl
 import com.smart.comida.ui.screens.*
 import com.smart.comida.ui.theme.PrimaryGreen
 import com.smart.comida.ui.viewmodel.AuthViewModel
@@ -44,6 +48,10 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
     val currentRoute = navBackStackEntry?.destination?.route
 
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsState()
+
+    val context = LocalContext.current
+    val database = remember { AppDatabase.getDatabase(context) }
+    val favoritesRepository = remember { FavoritesRepositoryImpl(database.favoriteRecipeDao()) }
 
     LaunchedEffect(isUserLoggedIn) {
         if (isUserLoggedIn == false && currentRoute != "login") {
@@ -290,7 +298,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     despensaViewModel = despensaViewModelCompartido
                 )
             }
-            
+
             composable(
                 route = "detalle_receta/{id}",
                 arguments = listOf(navArgument("id") { type = NavType.IntType }),
@@ -300,9 +308,11 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
+
                 DetalleRecetaScreen(
                     recetaId = id,
-                    onVolver = { navController.popBackStack() }
+                    onVolver = { navController.popBackStack() },
+                    favoritesRepository = favoritesRepository
                 )
             }
 
