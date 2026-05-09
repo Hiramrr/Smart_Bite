@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import com.smart.comida.data.model.Desperdicio
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import com.smart.comida.ui.viewmodel.HistorialDesperdicioUiState
@@ -41,6 +43,7 @@ fun HistorialDesperdicioScreen(
     viewModel: DespensaViewModel,
     onVolver: () -> Unit
 ) {
+    val context = LocalContext.current
     val uiState = viewModel.historialUiState
     val categoriasPorId = viewModel.categorias.associateBy { it.id }
 
@@ -74,16 +77,13 @@ fun HistorialDesperdicioScreen(
             }
 
             is HistorialDesperdicioUiState.Error -> {
-                Column(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(uiState.message, color = MaterialTheme.colorScheme.error)
-                }
+                val errorDetails = ErrorUtils.getErrorDetails(context, uiState.throwable)
+                com.smart.comida.ui.components.ErrorState(
+                    title = errorDetails.title,
+                    message = uiState.message.ifBlank { errorDetails.message },
+                    onRetry = { viewModel.cargarHistorialDesperdicio() },
+                    modifier = Modifier.padding(padding)
+                )
             }
 
             is HistorialDesperdicioUiState.Success -> {

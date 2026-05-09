@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.smart.comida.ui.theme.*
@@ -33,6 +35,7 @@ fun DescontarCantidadScreen(
     onDescontadoExitoso: () -> Unit,
     viewModel: DescontarViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     var cantidadADescontar by remember { mutableStateOf("") }
     var unidadSeleccionada by remember { mutableStateOf("") }
     var expandedUnidades by remember { mutableStateOf(false) }
@@ -88,8 +91,10 @@ fun DescontarCantidadScreen(
         bottomBar = {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (viewModel.uiState is DescontarUiState.Error) {
+                    val errorState = viewModel.uiState as DescontarUiState.Error
+                    val errorDetails = ErrorUtils.getErrorDetails(context, errorState.throwable)
                     Text(
-                        text = (viewModel.uiState as DescontarUiState.Error).message,
+                        text = errorState.message.ifBlank { errorDetails.message },
                         color = colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -111,11 +116,19 @@ fun DescontarCantidadScreen(
             }
         }
     ) { paddingValues ->
-        if (ing == null) {
+        val uiState = viewModel.uiState
+        if (ing == null && uiState !is DescontarUiState.Error) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PrimaryGreen)
             }
-        } else {
+        } else if (ing == null && uiState is DescontarUiState.Error) {
+            val errorDetails = ErrorUtils.getErrorDetails(context, (uiState as DescontarUiState.Error).throwable)
+            com.smart.comida.ui.components.ErrorState(
+                title = errorDetails.title,
+                message = (uiState as DescontarUiState.Error).message.ifBlank { errorDetails.message },
+                onRetry = { viewModel.cargarIngrediente(ingredienteId) }
+            )
+        } else if (ing != null) {
             Column(
                 modifier = Modifier
                     .padding(paddingValues)

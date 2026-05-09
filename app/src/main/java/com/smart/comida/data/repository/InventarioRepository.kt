@@ -29,22 +29,17 @@ class InventarioRepository {
                 imagenUrl = imagenUrl
             )
 
-            // Inserta el registro en la tabla "ingredientes"
             SupabaseClient.client.postgrest["ingredientes"]
                 .insert(nuevoIngrediente)
 
-            Result.success(Unit) // Éxito
+            Result.success(Unit)
         } catch (e: Exception) {
-            // Manejo de la Excepción Ex-01: 'Error al guardar los datos'
             Result.failure(e)
         }
     }
 
-    // se implemento esta funcion para descargar la lista de la despensa
     suspend fun obtenerIngredientes(): Result<List<Ingrediente>> {
         return try {
-            // "select()" trae todos los registros de la tabla
-            // "decodeList" los convierte automáticamente a nuestra clase Ingrediente
             val lista = SupabaseClient.client.postgrest["ingredientes"]
                 .select()
                 .decodeList<Ingrediente>()
@@ -55,7 +50,6 @@ class InventarioRepository {
         }
     }
 
-    // NUEVA FUNCIÓN: Descargar categorías
     suspend fun obtenerCategorias(): Result<List<Categoria>> {
         return try {
             val lista = SupabaseClient.client.postgrest["categorias"]
@@ -67,21 +61,18 @@ class InventarioRepository {
         }
     }
 
-    // NUEVA FUNCIÓN: Validar duplicados (FA-02)
     suspend fun existeIngrediente(nombreIngrediente: String): Boolean {
         return try {
             val coincidencias = SupabaseClient.client.postgrest["ingredientes"]
-                // Buscamos si existe exactamente ese nombre
                 .select { filter { eq("nombre", nombreIngrediente) } }
                 .decodeList<Ingrediente>()
 
-            coincidencias.isNotEmpty() // Devuelve true si encontró alguno
+            coincidencias.isNotEmpty()
         } catch (e: Exception) {
             false
         }
     }
 
-    // NUEVA FUNCIÓN: Eliminar ingrediente
     suspend fun eliminarIngrediente(id: Int): Result<Unit> {
         return try {
             SupabaseClient.client.postgrest["ingredientes"]
@@ -113,11 +104,9 @@ class InventarioRepository {
             try {
                 val nuevaCantidad = ingrediente.cantidad - cantidadDesperdicio
                 if (nuevaCantidad <= 0) {
-                    // Si se desperdicia todo o más, eliminar el ingrediente
                     SupabaseClient.client.postgrest["ingredientes"]
                         .delete { filter { eq("id", ingredienteId) } }
                 } else {
-                    // Si solo se desperdicia una parte, actualizar la cantidad
                     val ingredienteActualizado = Ingrediente(
                         id = ingredienteId,
                         nombre = ingrediente.nombre,
@@ -131,7 +120,6 @@ class InventarioRepository {
                         .update(ingredienteActualizado) { filter { eq("id", ingredienteId) } }
                 }
             } catch (deleteError: Exception) {
-                // Si falla la actualización/eliminación en inventario, revertimos el historial insertado.
                 runCatching {
                     SupabaseClient.client.postgrest["historial_desperdicio"]
                         .delete {
@@ -174,15 +162,14 @@ class InventarioRepository {
         }
     }
 
-    // NUEVA FUNCIÓN: Actualizar los datos de un ingrediente
     suspend fun actualizarIngrediente(
         id: Int, nombre: String, cantidad: Float,
         unidad: String?, fechaCaducidad: String?, categoriaId: Int?,
-        imagenUrl: String? = null // --- NUEVO PARÁMETRO ---
+        imagenUrl: String? = null
     ): Result<Unit> {
         return try {
             val ingredienteActualizado = Ingrediente(
-                id = id, // Es vital pasar el ID para que Supabase sepa cuál editar
+                id = id,
                 nombre = nombre, cantidad = cantidad, unidad = unidad,
                 fechaCaducidad = fechaCaducidad, categoriaId = categoriaId,
                 imagenUrl = imagenUrl // --- NUEVO ---
@@ -197,41 +184,32 @@ class InventarioRepository {
         }
     }
 
-    // NUEVA FUNCIÓN: Subir imagen a Supabase Storage
     suspend fun subirImagen(byteArray: ByteArray, nombreArchivo: String): Result<String> {
         return try {
-            // Nos conectamos a la "caja" que creaste
             val bucket = SupabaseClient.client.storage["ingredientes_imagenes"]
 
-            // Creamos un nombre único para el archivo (ej. tomate_168439.jpg)
             val rutaArchivo = "$nombreArchivo.jpg"
 
-            // Subimos la imagen (upsert = true permite sobreescribir si ya existe uno con ese nombre)
             bucket.upload(rutaArchivo, byteArray, upsert = true)
 
-            // Pedimos la URL pública de la imagen recién subida
             val urlPublica = bucket.publicUrl(rutaArchivo)
 
-            Result.success(urlPublica) // Devolvemos el link
+            Result.success(urlPublica)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // NUEVA FUNCIÓN: Eliminar imagen vieja para liberar espacio
     suspend fun eliminarImagen(urlPublica: String) {
         try {
-            // Extraemos el nombre del archivo de la URL
-            // Ejemplo: si la URL termina en /foto_1234.jpg, esto extrae "foto_1234.jpg"
+
             val nombreArchivo = urlPublica.substringAfterLast("/")
 
             if (nombreArchivo.isNotBlank()) {
                 val bucket = SupabaseClient.client.storage["ingredientes_imagenes"]
-                bucket.delete(nombreArchivo) // Le decimos a la nube que lo borre
+                bucket.delete(nombreArchivo)
             }
         } catch (e: Exception) {
-            // Si falla el borrado, lo atrapamos aquí para que la app no se trabe
-            // y permita seguir guardando los datos del ingrediente.
             e.printStackTrace()
         }
     }

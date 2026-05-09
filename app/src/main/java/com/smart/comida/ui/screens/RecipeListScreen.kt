@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.smartbite.data.Recipe
@@ -42,6 +44,7 @@ fun RecipeListScreen(
 ) {
     val uiState by recipeViewModel.uiState.collectAsState()
     var query by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -116,13 +119,14 @@ fun RecipeListScreen(
                     ShimmerRecipeGrid(count = 6, modifier = Modifier.fillMaxWidth())
                 }
                 is RecipeUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            (uiState as RecipeUiState.Error).message,
-                            color = colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    val errorState = uiState as RecipeUiState.Error
+                    val errorDetails = ErrorUtils.getErrorDetails(context, errorState.throwable)
+                    com.smart.comida.ui.components.ErrorState(
+                        title = errorDetails.title,
+                        message = errorState.message.ifBlank { errorDetails.message },
+                        onRetry = { if (query.isNotBlank()) recipeViewModel.searchRecipes(query) },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 is RecipeUiState.SearchSuccess -> {
                     val recetas = (uiState as RecipeUiState.SearchSuccess).recipes

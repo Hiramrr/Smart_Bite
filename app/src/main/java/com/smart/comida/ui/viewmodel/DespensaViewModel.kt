@@ -23,11 +23,9 @@ class DespensaViewModel : ViewModel() {
     var historialUiState by mutableStateOf<HistorialDesperdicioUiState>(HistorialDesperdicioUiState.Loading)
         private set
 
-    // Lista de categorías para los filtros
     var categorias by mutableStateOf<List<Categoria>>(emptyList())
         private set
 
-    // Guardamos la lista original para no tener que descargarla cada vez que filtramos
     private var todosLosIngredientes: List<Ingrediente> = emptyList()
 
     // Estado de los filtros
@@ -57,9 +55,9 @@ class DespensaViewModel : ViewModel() {
             repository.obtenerIngredientes().onSuccess { lista ->
                 todosLosIngredientes = lista
                 actualizarResumen()
-                aplicarFiltros() // Mostramos la lista aplicando el filtro actual
+                aplicarFiltros()
             }.onFailure { error ->
-                uiState = DespensaUiState.Error("Error al cargar: ${error.message}")
+                uiState = DespensaUiState.Error("Error al cargar ingredientes", error)
             }
         }
     }
@@ -99,7 +97,7 @@ class DespensaViewModel : ViewModel() {
                 // Volvemos a descargar la lista para que la pantalla se actualice
                 cargarIngredientes()
             }.onFailure {
-                uiState = DespensaUiState.Error("Error al eliminar: ${it.message}")
+                uiState = DespensaUiState.Error("Error al eliminar ingrediente", it)
             }
         }
     }
@@ -163,11 +161,10 @@ class DespensaViewModel : ViewModel() {
         viewModelScope.launch {
             repository.obtenerHistorialDesperdicio()
                 .onSuccess { historialUiState = HistorialDesperdicioUiState.Success(it) }
-                .onFailure { historialUiState = HistorialDesperdicioUiState.Error("Error al cargar historial: ${it.message}") }
+                .onFailure { historialUiState = HistorialDesperdicioUiState.Error("Error al cargar historial", it) }
         }
     }
 
-    // --- LÓGICA DE FILTROS ---
 
     fun actualizarBusqueda(query: String) {
         searchQuery = query
@@ -176,7 +173,7 @@ class DespensaViewModel : ViewModel() {
 
     fun seleccionarFiltroCategoria(categoria: Categoria?) {
         filtroSeleccionado = categoria
-        diasFiltroCaducidad = null // Apagamos el de caducar si elegimos una categoría
+        diasFiltroCaducidad = null
         aplicarFiltros()
     }
 
@@ -186,7 +183,7 @@ class DespensaViewModel : ViewModel() {
         } else {
             diasFiltroCaducidad = dias
             if (dias != null) {
-                filtroSeleccionado = null // Apagamos las categorías si elegimos por caducar
+                filtroSeleccionado = null
             }
         }
         aplicarFiltros()
@@ -228,11 +225,11 @@ class DespensaViewModel : ViewModel() {
 sealed class DespensaUiState {
     object Loading : DespensaUiState()
     data class Success(val ingredientes: List<Ingrediente>) : DespensaUiState()
-    data class Error(val message: String) : DespensaUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : DespensaUiState()
 }
 
 sealed class HistorialDesperdicioUiState {
     object Loading : HistorialDesperdicioUiState()
     data class Success(val desperdicios: List<Desperdicio>) : HistorialDesperdicioUiState()
-    data class Error(val message: String) : HistorialDesperdicioUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : HistorialDesperdicioUiState()
 }

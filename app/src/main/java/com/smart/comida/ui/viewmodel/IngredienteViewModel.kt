@@ -89,7 +89,7 @@ class IngredienteViewModel : ViewModel() {
                 resultadoImagen.onSuccess { url ->
                     urlImagenSubida = url // Guardamos el link mágico de Supabase
                 }.onFailure {
-                    uiState = IngredienteUiState.Error("Error al subir la imagen: ${it.message}")
+                    uiState = IngredienteUiState.Error("No se pudo subir la imagen del ingrediente", it)
                     return@launch // Si falla la foto, detenemos el guardado
                 }
             }
@@ -108,7 +108,7 @@ class IngredienteViewModel : ViewModel() {
             resultado.onSuccess {
                 uiState = IngredienteUiState.Success
             }.onFailure {
-                uiState = IngredienteUiState.Error("Error al guardar: ${it.message}")
+                uiState = IngredienteUiState.Error("No se pudo guardar el ingrediente en la despensa", it)
             }
         }
     }
@@ -122,5 +122,5 @@ sealed class IngredienteUiState {
     object Idle : IngredienteUiState()
     object Loading : IngredienteUiState()
     object Success : IngredienteUiState()
-    data class Error(val message: String) : IngredienteUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : IngredienteUiState()
 }

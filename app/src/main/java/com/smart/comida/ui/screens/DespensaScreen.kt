@@ -30,13 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 
-// Colores semánticos locales eliminados; usar MaterialTheme.colorScheme para soporte claro/oscuro
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +48,11 @@ fun DespensaScreen(
     onEditarClick: (Int) -> Unit,
     onVerDetalleClick: (Int) -> Unit
 ) {
+    val context = LocalContext.current
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Estado para el diálogo de confirmación
     var ingredienteADesperdicio by remember { mutableStateOf<Ingrediente?>(null) }
 
     LaunchedEffect(Unit) {
@@ -270,19 +271,14 @@ fun DespensaScreen(
                     }
                 }
                 is DespensaUiState.Error -> {
+                    val errorDetails = ErrorUtils.getErrorDetails(context, uiState.throwable)
                     item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(text = uiState.message, color = colorScheme.error, fontSize = 16.sp)
-                            Button(
-                                onClick = { viewModel.cargarIngredientes() },
-                                colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
-                            ) {
-                                Text("Reintentar")
-                            }
-                        }
+                        com.smart.comida.ui.components.ErrorState(
+                            title = errorDetails.title,
+                            message = uiState.message.ifBlank { errorDetails.message },
+                            onRetry = { viewModel.cargarIngredientes() },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp)
+                        )
                     }
                 }
                 is DespensaUiState.Success -> {

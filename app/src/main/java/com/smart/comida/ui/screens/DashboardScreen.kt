@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import coil.compose.AsyncImage
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.theme.*
@@ -50,6 +52,7 @@ fun DashboardScreen(
     onVerDetalleClick: (Int) -> Unit,
     onSettingsClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val uiState = viewModel.uiState
     val scrollState = rememberScrollState()
 
@@ -253,7 +256,15 @@ fun DashboardScreen(
                         }
                     }
                 }
-                is DespensaUiState.Error -> { /* hide section on error */ }
+                is DespensaUiState.Error -> {
+                    val errorDetails = ErrorUtils.getErrorDetails(context, uiState.throwable)
+                    com.smart.comida.ui.components.ErrorState(
+                        title = errorDetails.title,
+                        message = uiState.message.ifBlank { errorDetails.message },
+                        onRetry = { viewModel.cargarIngredientes() },
+                        modifier = Modifier.fillMaxWidth().height(300.dp)
+                    )
+                }
                 is DespensaUiState.Success -> {
                     val ingredientes = uiState.ingredientes.take(4)
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {

@@ -41,7 +41,7 @@ class EditarIngredienteViewModel : ViewModel() {
                 uiState = IngredienteUiState.Idle
                 imagenUrl = ing.imagenUrl // --- CARGAMOS LA IMAGEN VIEJA ---
             }.onFailure {
-                uiState = IngredienteUiState.Error("Error al cargar ingrediente")
+                uiState = IngredienteUiState.Error("No se pudo cargar la información del ingrediente", it)
             }
         }
     }
@@ -86,7 +86,7 @@ class EditarIngredienteViewModel : ViewModel() {
                     // 3. Asignamos la nueva URL para guardarla en la base de datos
                     urlFinalParaGuardar = nuevaUrl
                 }.onFailure {
-                    uiState = IngredienteUiState.Error("Error al subir la nueva imagen: ${it.message}")
+                    uiState = IngredienteUiState.Error("No se pudo actualizar la imagen", it)
                     return@launch
                 }
             }
@@ -102,7 +102,7 @@ class EditarIngredienteViewModel : ViewModel() {
             resultado.onSuccess {
                 uiState = IngredienteUiState.Success
             }.onFailure {
-                uiState = IngredienteUiState.Error("Error al guardar: Verifica tu conexión a internet o intenta más tarde.")
+                uiState = IngredienteUiState.Error("No se pudieron guardar los cambios", it)
             }
         }
     }

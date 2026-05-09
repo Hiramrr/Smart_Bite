@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.smart.comida.util.ErrorUtils
 import coil.compose.AsyncImage
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.EditarIngredienteViewModel
@@ -118,8 +119,9 @@ fun EditarIngredienteScreen(
         bottomBar = {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (uiState is IngredienteUiState.Error) {
+                    val errorDetails = ErrorUtils.getErrorDetails(context, uiState.throwable)
                     Text(
-                        text = uiState.message,
+                        text = uiState.message.ifBlank { errorDetails.message },
                         color = colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -150,6 +152,13 @@ fun EditarIngredienteScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = colorScheme.primary)
             }
+        } else if (uiState is IngredienteUiState.Error && viewModel.nombre.isEmpty()) {
+            val errorDetails = ErrorUtils.getErrorDetails(context, uiState.throwable)
+            com.smart.comida.ui.components.ErrorState(
+                title = errorDetails.title,
+                message = uiState.message.ifBlank { errorDetails.message },
+                onRetry = { viewModel.cargarDatos(ingredienteId) }
+            )
         } else {
             Column(
                 modifier = Modifier

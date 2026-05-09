@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.smart.comida.util.ErrorUtils
 import coil.compose.AsyncImage
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.IngredienteUiState
@@ -132,8 +133,10 @@ fun AgregarIngredienteScreen(
         bottomBar = {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (viewModel.uiState is IngredienteUiState.Error) {
+                    val errorState = viewModel.uiState as IngredienteUiState.Error
+                    val errorDetails = ErrorUtils.getErrorDetails(context, errorState.throwable)
                     Text(
-                        text = (viewModel.uiState as IngredienteUiState.Error).message,
+                        text = errorState.message.ifBlank { errorDetails.message },
                         color = colorScheme.error,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 8.dp)

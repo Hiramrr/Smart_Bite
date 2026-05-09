@@ -24,45 +24,58 @@ class ListaComprasViewModel : ViewModel() {
             repository.obtenerArticulos().onSuccess { lista ->
                 uiState = ListaComprasUiState.Success(lista)
             }.onFailure { error ->
-                uiState = ListaComprasUiState.Error("Error al cargar: ${error.message}")
+                uiState = ListaComprasUiState.Error("No se pudo cargar la lista de compras", error)
             }
         }
     }
 
     fun editarArticulo(id: Int, nombre: String, cantidadInput: String, unidad: String?) {
         if (nombre.isBlank()) {
-            mensajeOperacion = "El nombre del producto no puede estar vacío."
+            mensajeOperacion = "El nombre del producto es obligatorio."
             return
         }
 
         val cantidad = cantidadInput.replace(',', '.').toDoubleOrNull()
+        if (cantidadInput.isNotBlank() && (cantidad == null || cantidad <= 0)) {
+            mensajeOperacion = "Por favor, ingresa una cantidad válida mayor a cero."
+            return
+        }
 
         viewModelScope.launch {
             val resultado = repository.actualizarArticulo(id, nombre, cantidad, unidad)
             resultado.onSuccess {
-                mensajeOperacion = "Artículo actualizado."
+                mensajeOperacion = "Producto actualizado correctamente."
                 cargarArticulos()
             }.onFailure { error ->
-                mensajeOperacion = "Error al actualizar: ${error.message ?: "Intenta nuevamente."}"
+                mensajeOperacion = "No se pudo actualizar el producto. Verifica tu conexión."
             }
         }
     }
 
     fun agregarArticulo(nombre: String, cantidadInput: String, unidad: String?) {
         if (nombre.isBlank()) {
-            mensajeOperacion = "El nombre del producto no puede estar vacío."
+            mensajeOperacion = "El nombre del producto es obligatorio."
             return
         }
 
         val cantidad = cantidadInput.replace(',', '.').toDoubleOrNull()
+        if (cantidadInput.isBlank()) {
+            mensajeOperacion = "Por favor, ingresa la cantidad que deseas comprar."
+            return
+        }
+        
+        if (cantidad == null || cantidad <= 0) {
+            mensajeOperacion = "La cantidad debe ser un número válido mayor a cero."
+            return
+        }
 
         viewModelScope.launch {
             val resultado = repository.agregarArticulo(nombre, cantidad, unidad)
             resultado.onSuccess {
-                mensajeOperacion = "Artículo agregado exitosamente."
+                mensajeOperacion = "Producto añadido a la lista."
                 cargarArticulos()
             }.onFailure { error ->
-                mensajeOperacion = "Error al agregar el artículo: ${error.message ?: "Intenta nuevamente."}"
+                mensajeOperacion = "Error al guardar el producto. Intenta nuevamente."
             }
         }
     }
@@ -120,5 +133,5 @@ class ListaComprasViewModel : ViewModel() {
 sealed class ListaComprasUiState {
     object Loading : ListaComprasUiState()
     data class Success(val articulos: List<ArticuloCompra>) : ListaComprasUiState()
-    data class Error(val message: String) : ListaComprasUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : ListaComprasUiState()
 }

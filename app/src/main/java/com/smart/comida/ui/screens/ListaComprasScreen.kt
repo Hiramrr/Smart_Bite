@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.smart.comida.data.model.ArticuloCompra
 import com.smart.comida.ui.components.EmptyState
@@ -43,6 +45,7 @@ fun ListaComprasScreen(
     onNavigateToAgregar: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     val uiState = viewModel.uiState
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     
     var selectedTab by remember { mutableStateOf(0) }
@@ -63,7 +66,6 @@ fun ListaComprasScreen(
         }
     }
 
-    // Diálogo para mover a despensa
     mostrarDialogoMoverADespensa?.let { articulo ->
         AlertDialog(
             onDismissRequest = { mostrarDialogoMoverADespensa = null },
@@ -266,9 +268,13 @@ fun ListaComprasScreen(
                     ShimmerComprasList(count = 6, modifier = Modifier.weight(1f))
                 }
                 is ListaComprasUiState.Error -> {
-                    Box(modifier = Modifier.weight(1f).padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text(text = uiState.message, color = colorScheme.error)
-                    }
+                    val errorDetails = ErrorUtils.getErrorDetails(context, uiState.throwable)
+                    com.smart.comida.ui.components.ErrorState(
+                        title = errorDetails.title,
+                        message = uiState.message.ifBlank { errorDetails.message },
+                        onRetry = { viewModel.cargarArticulos() },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 is ListaComprasUiState.Success -> {
                     val todos = uiState.articulos

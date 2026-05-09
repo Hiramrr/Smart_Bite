@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">SmartBite</string>
+    
+    <!-- Error Messages -->
+    <string name="error_unknown">Ha ocurrido un error inesperado. Por favor, intenta de nuevo.</string>
+    <string name="error_network">No se pudo establecer conexión con el servidor. Revisa tu internet.</string>
+    <string name="error_timeout">La conexión ha tardado demasiado. Intenta nuevamente.</string>
+    <string name="error_server">El servidor está experimentando problemas. Por favor, espera un momento.</string>
+    <string name="error_unauthorized">Sesión expirada o no autorizada. Por favor, inicia sesión de nuevo.</string>
+    <string name="error_database">Error al acceder a los datos locales.</string>
+    <string name="error_not_found">No se encontró la información solicitada.</string>
+    
+    <!-- Button Labels -->
+    <string name="retry">Reintentar</string>
+    <string name="accept">Aceptar</string>
 </resources>

@@ -20,7 +20,7 @@ sealed class RecipeUiState {
     object Loading : RecipeUiState()
     data class SearchSuccess(val recipes: List<Recipe>) : RecipeUiState()
     data class DetailSuccess(val recipe: RecipeDetail) : RecipeUiState()
-    data class Error(val message: String) : RecipeUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : RecipeUiState()
 }
 
 class RecipeViewModel : ViewModel() {
@@ -48,11 +48,9 @@ class RecipeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // 1. Traducimos el ingrediente a Inglés (ej. "pollo" -> "chicken")
                 val queryEn = TranslationHelper.translateToEnglish(queryEs)
                 Log.d("API_SEARCH", "Buscando ingrediente en inglés: $queryEn")
 
-                // 2. Buscamos en la API
                 val result = repository.searchRecipes(queryEn)
 
                 result.fold(
@@ -60,17 +58,15 @@ class RecipeViewModel : ViewModel() {
                         if (response.results.isEmpty()) {
                             _uiState.value = RecipeUiState.Error("No se encontraron recetas con '$queryEs'.")
                         } else {
-                            // Opcional: También podríamos traducir los títulos de la lista aquí
                             _uiState.value = RecipeUiState.SearchSuccess(response.results)
                         }
                     },
                     onFailure = { error ->
                         Log.e("API_ERROR", "Error de red: ${error.message}", error)
-                        _uiState.value = RecipeUiState.Error("Error de red: Verifica tu conexión.")
-                    }
-                )
-            } catch (e: Exception) {
-                _uiState.value = RecipeUiState.Error("Error inesperado en la traducción.")
+                        _uiState.value = RecipeUiState.Error("Error de red", error)
+                        })
+                } catch (e: Exception) {
+                _uiState.value = RecipeUiState.Error("Error inesperado", e)
             }
         }
     }
@@ -124,7 +120,7 @@ class RecipeViewModel : ViewModel() {
                 },
                 onFailure = { error ->
                     Log.e("API_ERROR", "Error de red: ${error.message}", error)
-                    _uiState.value = RecipeUiState.Error("No se pudo obtener el detalle de la receta.")
+                    _uiState.value = RecipeUiState.Error("No se pudo obtener el detalle de la receta", error)
                 }
             )
         }

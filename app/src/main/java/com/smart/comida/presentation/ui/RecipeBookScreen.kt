@@ -17,6 +17,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.smart.comida.data.local.entity.FavoriteRecipeEntity
@@ -37,6 +39,7 @@ fun RecipeBookScreen(
     )
 
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -62,7 +65,13 @@ fun RecipeBookScreen(
                     EmptyRecipeBook(onNavigateToSearch, modifier = Modifier.align(Alignment.Center))
                 }
                 is RecipeBookUiState.Error -> {
-                    ErrorState(message = state.message, modifier = Modifier.align(Alignment.Center))
+                    val errorDetails = ErrorUtils.getErrorDetails(context, state.throwable)
+                    com.smart.comida.ui.components.ErrorState(
+                        title = errorDetails.title,
+                        message = state.message.ifBlank { errorDetails.message },
+                        onRetry = { /* En este caso el flujo es reactivo, pero podemos disparar una recarga si fuera necesario */ },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 is RecipeBookUiState.Success -> {
                     RecipeGrid(
@@ -109,15 +118,6 @@ private fun EmptyRecipeBook(onNavigateToSearch: () -> Unit, modifier: Modifier =
             Text("Buscar recetas")
         }
     }
-}
-
-@Composable
-private fun ErrorState(message: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Error: $message",
-        color = MaterialTheme.colorScheme.error,
-        modifier = modifier.padding(16.dp)
-    )
 }
 
 @Composable

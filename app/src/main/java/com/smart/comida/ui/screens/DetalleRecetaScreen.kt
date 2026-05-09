@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.gson.Gson // Importación de Gson para serializar
@@ -40,6 +42,7 @@ fun DetalleRecetaScreen(
 
     // 3. Estado reactivo de la BD local (Flow -> State)
     val isFavorite by favoriteViewModel.isFavorite.collectAsState()
+    val context = LocalContext.current
 
     // Buscamos los detalles de la receta al abrir la pantalla (CU-09)
     LaunchedEffect(recetaId) {
@@ -82,7 +85,16 @@ fun DetalleRecetaScreen(
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when (uiState) {
                 is RecipeUiState.Loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                is RecipeUiState.Error -> Text((uiState as RecipeUiState.Error).message, modifier = Modifier.align(Alignment.Center))
+                is RecipeUiState.Error -> {
+                    val errorState = uiState as RecipeUiState.Error
+                    val errorDetails = ErrorUtils.getErrorDetails(context, errorState.throwable)
+                    com.smart.comida.ui.components.ErrorState(
+                        title = errorDetails.title,
+                        message = errorState.message.ifBlank { errorDetails.message },
+                        onRetry = { recipeViewModel.getRecipeDetail(recetaId) },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
                 is RecipeUiState.DetailSuccess -> {
                     val receta = (uiState as RecipeUiState.DetailSuccess).recipe
 

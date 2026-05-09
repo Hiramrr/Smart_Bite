@@ -25,7 +25,7 @@ class RegistrarDesperdicioViewModel : ViewModel() {
                 ingrediente = it
                 uiState = RegistrarDesperdicioUiState.Idle
             }.onFailure {
-                uiState = RegistrarDesperdicioUiState.Error("No se pudo cargar el ingrediente.")
+                uiState = RegistrarDesperdicioUiState.Error("No se pudo cargar el ingrediente", it)
             }
         }
     }
@@ -49,7 +49,7 @@ class RegistrarDesperdicioViewModel : ViewModel() {
             repository.registrarComoDesperdicio(ing, cantidadDesperdicio).onSuccess {
                 uiState = RegistrarDesperdicioUiState.Success
             }.onFailure {
-                uiState = RegistrarDesperdicioUiState.Error("Error al registrar el desperdicio.")
+                uiState = RegistrarDesperdicioUiState.Error("No se pudo registrar el desperdicio", it)
             }
         }
     }
@@ -63,5 +63,5 @@ sealed class RegistrarDesperdicioUiState {
     object Idle : RegistrarDesperdicioUiState()
     object Loading : RegistrarDesperdicioUiState()
     object Success : RegistrarDesperdicioUiState()
-    data class Error(val message: String) : RegistrarDesperdicioUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : RegistrarDesperdicioUiState()
 }

@@ -25,7 +25,7 @@ class DescontarViewModel : ViewModel() {
                 ingrediente = it
                 uiState = DescontarUiState.Idle
             }.onFailure {
-                uiState = DescontarUiState.Error("No se pudo cargar el ingrediente.")
+                uiState = DescontarUiState.Error("No se pudo cargar el ingrediente", it)
             }
         }
     }
@@ -74,7 +74,7 @@ class DescontarViewModel : ViewModel() {
             ).onSuccess {
                 uiState = DescontarUiState.Success
             }.onFailure {
-                uiState = DescontarUiState.Error("Error al actualizar el inventario.")
+                uiState = DescontarUiState.Error("No se pudo actualizar el inventario", it)
             }
         }
     }
@@ -88,5 +88,5 @@ sealed class DescontarUiState {
     object Idle : DescontarUiState()
     object Loading : DescontarUiState()
     object Success : DescontarUiState()
-    data class Error(val message: String) : DescontarUiState()
+    data class Error(val message: String, val throwable: Throwable? = null) : DescontarUiState()
 }

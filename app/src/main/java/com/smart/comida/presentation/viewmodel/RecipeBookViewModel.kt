@@ -16,7 +16,7 @@ sealed interface RecipeBookUiState {
     object Loading : RecipeBookUiState
     object Empty : RecipeBookUiState // FA-01: Recetario vacío
     data class Success(val recipes: List<FavoriteRecipeEntity>) : RecipeBookUiState
-    data class Error(val message: String) : RecipeBookUiState // Ex-01: Error al cargar
+    data class Error(val message: String, val throwable: Throwable? = null) : RecipeBookUiState // Ex-01: Error al cargar
 }
 
 class RecipeBookViewModel(
@@ -33,7 +33,7 @@ class RecipeBookViewModel(
             }
         }
         .catch { exception ->
-            emit(RecipeBookUiState.Error(exception.message ?: "Error desconocido al cargar recetas"))
+            emit(RecipeBookUiState.Error("No se pudieron cargar las recetas guardadas", exception))
         }
         .stateIn(
             scope = viewModelScope,
