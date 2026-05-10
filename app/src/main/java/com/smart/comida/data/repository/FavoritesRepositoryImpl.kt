@@ -17,7 +17,6 @@ class FavoritesRepositoryImpl(
     override fun isFavorite(recipeId: Int): Flow<Boolean> = dao.isFavorite(recipeId)
 
     override suspend fun toggleFavorite(recipe: FavoriteRecipeEntity) {
-        // Obligamos a la corrutina a ejecutarse en el hilo de Entrada/Salida (I/O)
         withContext(Dispatchers.IO) {
             val exists = dao.isFavorite(recipe.externalRecipeId).first()
             if (exists) {

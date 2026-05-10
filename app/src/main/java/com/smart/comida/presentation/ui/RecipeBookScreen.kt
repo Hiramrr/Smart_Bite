@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,7 +19,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import com.smart.comida.util.ErrorUtils
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.smart.comida.data.local.entity.FavoriteRecipeEntity
@@ -26,13 +26,15 @@ import com.smart.comida.domain.repository.FavoritesRepository
 import com.smart.comida.presentation.viewmodel.RecipeBookUiState
 import com.smart.comida.presentation.viewmodel.RecipeBookViewModel
 import com.smart.comida.presentation.viewmodel.RecipeBookViewModelFactory
+import com.smart.comida.util.ErrorUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeBookScreen(
     favoritesRepository: FavoritesRepository,
-    onNavigateToRecipeDetail: (Int) -> Unit, // Para visualizar el detalle (CU-09)
-    onNavigateToSearch: () -> Unit // Para el flujo FA-01
+    onNavigateToRecipeDetail: (Int) -> Unit,
+    onNavigateToSearch: () -> Unit,
+    onNavigateBack: () -> Unit // Inyección del manejador de retroceso
 ) {
     val viewModel: RecipeBookViewModel = viewModel(
         factory = RecipeBookViewModelFactory(favoritesRepository)
@@ -45,6 +47,14 @@ fun RecipeBookScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Mi Recetario") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar a la pantalla anterior"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -69,7 +79,7 @@ fun RecipeBookScreen(
                     com.smart.comida.ui.components.ErrorState(
                         title = errorDetails.title,
                         message = state.message.ifBlank { errorDetails.message },
-                        onRetry = { /* En este caso el flujo es reactivo, pero podemos disparar una recarga si fuera necesario */ },
+                        onRetry = { /* Flujo reactivo */ },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -83,10 +93,6 @@ fun RecipeBookScreen(
         }
     }
 }
-
-// =====================================================================
-// Componentes Modulares (SRP)
-// =====================================================================
 
 @Composable
 private fun EmptyRecipeBook(onNavigateToSearch: () -> Unit, modifier: Modifier = Modifier) {

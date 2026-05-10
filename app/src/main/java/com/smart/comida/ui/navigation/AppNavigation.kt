@@ -1,5 +1,6 @@
 package com.smart.comida.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -46,7 +48,7 @@ import com.smart.comida.ui.viewmodel.ThemeViewModel
 fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: AuthViewModel = viewModel()) {
     val navController = rememberNavController()
     val despensaViewModelCompartido: DespensaViewModel = viewModel()
-    
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -90,7 +92,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 ) {
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Home, contentDescription = "Despensa") },
-                        label = { Text("Despensa") },
+                        label = { Text("Despensa", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         selected = currentRoute == "dashboard" || currentRoute == "despensa_list",
                         onClick = {
                             navController.navigate("dashboard") {
@@ -107,9 +109,10 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                             unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
+
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Compras") },
-                        label = { Text("Compras") },
+                        label = { Text("Compras", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         selected = currentRoute == "lista_compras",
                         onClick = {
                             navController.navigate("lista_compras") {
@@ -127,23 +130,33 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                         )
                     )
 
-                    // The floating + button in the middle
-                    Box(modifier = Modifier.padding(top = 12.dp)) {
-                        FloatingActionButton(
-                            onClick = { navController.navigate("agregar") },
-                            containerColor = colorScheme.primary,
-                            contentColor = colorScheme.onPrimary,
-                            shape = CircleShape,
-                            modifier = Modifier.size(56.dp),
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Agregar")
-                        }
-                    }
+                    // EL BOTÓN "+" ESTÁ AHORA INTEGRADO A LA MISMA ALTURA Y SIN TEXTO
+                    NavigationBarItem(
+                        icon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(colorScheme.primary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Agregar",
+                                    tint = colorScheme.onPrimary
+                                )
+                            }
+                        },
+                        label = null, // Al ser null, se centra verticalmente de forma perfecta
+                        selected = false,
+                        onClick = { navController.navigate("agregar") },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Color.Transparent
+                        )
+                    )
 
                     NavigationBarItem(
                         icon = { Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = "Estadísticas") },
-                        label = { Text("Estadísticas") },
+                        label = { Text("Estadísticas", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         selected = currentRoute == "estadisticas",
                         onClick = {
                             navController.navigate("estadisticas") {
@@ -163,7 +176,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
 
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = "Recetas") },
-                        label = { Text("Recetas") },
+                        label = { Text("Recetas", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         selected = currentRoute == "recetas",
                         onClick = {
                             navController.navigate("recetas") {
@@ -180,9 +193,10 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                             unselectedTextColor = colorScheme.onSurfaceVariant
                         )
                     )
+
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                        label = { Text("Perfil") },
+                        label = { Text("Perfil", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         selected = currentRoute == "profile",
                         onClick = {
                             navController.navigate("profile") {
@@ -433,7 +447,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
             }
 
             composable(
-                route = "recetas", // Se conserva la ruta original
+                route = "recetas",
                 enterTransition = { fadeEnterTransition(this) },
                 exitTransition = { fadeExitTransition(this) },
                 popEnterTransition = { fadeEnterTransition(this) },
@@ -445,7 +459,6 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                         navController.navigate("detalle_receta/$id")
                     },
                     onFavoritasClick = {
-                        // Inyectamos la navegación hacia la nueva pantalla local
                         navController.navigate("recetario")
                     },
                     onSettingsClick = {
@@ -473,14 +486,23 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 )
             }
 
-            composable(route = "recetario") {
+            composable(
+                route = "recetario",
+                enterTransition = { fadeEnterTransition(this) },
+                exitTransition = { fadeExitTransition(this) }
+            ) {
                 RecipeBookScreen(
                     favoritesRepository = favoritesRepository,
                     onNavigateToRecipeDetail = { id ->
                         navController.navigate("detalle_receta/$id")
                     },
                     onNavigateToSearch = {
-                        navController.navigate("buscar_recetas")
+                        navController.navigate("recetas") {
+                            popUpTo("recetario") { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

@@ -11,19 +11,18 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-// Representación exhaustiva de los estados de la pantalla (CU-11, FA-01, Ex-01)
 sealed interface RecipeBookUiState {
-    object Loading : RecipeBookUiState
-    object Empty : RecipeBookUiState // FA-01: Recetario vacío
+    data object Loading : RecipeBookUiState
+    data object Empty : RecipeBookUiState
     data class Success(val recipes: List<FavoriteRecipeEntity>) : RecipeBookUiState
-    data class Error(val message: String, val throwable: Throwable? = null) : RecipeBookUiState // Ex-01: Error al cargar
+    data class Error(val message: String, val throwable: Throwable? = null) : RecipeBookUiState
 }
 
 class RecipeBookViewModel(
-    repository: FavoritesRepository
+    private val repository: FavoritesRepository
 ) : ViewModel() {
 
-    // Transformamos el Flow crudo de Room en un StateFlow procesado para la UI
+
     val uiState: StateFlow<RecipeBookUiState> = repository.getAllFavorites()
         .map { recipes ->
             if (recipes.isEmpty()) {
@@ -33,24 +32,27 @@ class RecipeBookViewModel(
             }
         }
         .catch { exception ->
-            emit(RecipeBookUiState.Error("No se pudieron cargar las recetas guardadas", exception))
+            emit(RecipeBookUiState.Error(
+                message = exception.message ?: "Ocurrió un error inesperado al cargar el recetario.",
+                throwable = exception
+            ))
         }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.WhileSubscribed(5000L), // Tolera cambios de configuración (ej. rotación de pantalla)
             initialValue = RecipeBookUiState.Loading
         )
 }
 
-// Factory para inyección de dependencias
 class RecipeBookViewModelFactory(
     private val repository: FavoritesRepository
 ) : ViewModelProvider.Factory {
+
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecipeBookViewModel::class.java)) {
             return RecipeBookViewModel(repository) as T
         }
-        throw IllegalArgumentException("Clase ViewModel desconocida")
+        throw IllegalArgumentException("Clase ViewModel desconocida: ${modelClass.name}")
     }
 }
