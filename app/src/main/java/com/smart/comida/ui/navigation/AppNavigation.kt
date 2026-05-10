@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -38,6 +39,7 @@ import com.smart.comida.ui.screens.*
 import com.smart.comida.ui.theme.PrimaryGreen
 import com.smart.comida.ui.viewmodel.AuthViewModel
 import com.smart.comida.ui.viewmodel.DespensaViewModel
+import com.smart.comida.ui.viewmodel.EstadisticasViewModel
 import com.smart.comida.ui.viewmodel.ThemeViewModel
 
 @Composable
@@ -138,6 +140,26 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                             Icon(Icons.Default.Add, contentDescription = "Agregar")
                         }
                     }
+
+                    NavigationBarItem(
+                        icon = { Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = "Estadísticas") },
+                        label = { Text("Estadísticas") },
+                        selected = currentRoute == "estadisticas",
+                        onClick = {
+                            navController.navigate("estadisticas") {
+                                popUpTo("dashboard") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = colorScheme.primary,
+                            selectedTextColor = colorScheme.primary,
+                            indicatorColor = Color.Transparent,
+                            unselectedIconColor = colorScheme.onSurfaceVariant,
+                            unselectedTextColor = colorScheme.onSurfaceVariant
+                        )
+                    )
 
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.ReceiptLong, contentDescription = "Recetas") },
@@ -389,7 +411,9 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 popEnterTransition = { fadeEnterTransition(this) },
                 popExitTransition = { fadeExitTransition(this) }
             ) {
+                val estadisticasViewModel: EstadisticasViewModel = viewModel()
                 EstadisticasScreen(
+                    viewModel = estadisticasViewModel,
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }

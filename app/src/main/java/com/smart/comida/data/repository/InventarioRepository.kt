@@ -162,6 +162,29 @@ class InventarioRepository {
         }
     }
 
+    suspend fun obtenerDesperdiciosPorMes(mes: Int, anio: Int): Result<List<Desperdicio>> {
+        return try {
+            val inicioMes = String.format("%04d-%02d-01T00:00:00+00:00", anio, mes)
+            val finMes = if (mes == 12) {
+                String.format("%04d-01-01T00:00:00+00:00", anio + 1)
+            } else {
+                String.format("%04d-%02d-01T00:00:00+00:00", anio, mes + 1)
+            }
+
+            val lista = SupabaseClient.client.postgrest["historial_desperdicio"]
+                .select {
+                    filter {
+                        gte("fecha_desecho", inicioMes)
+                        lt("fecha_desecho", finMes)
+                    }
+                }
+                .decodeList<Desperdicio>()
+            Result.success(lista)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun actualizarIngrediente(
         id: Int, nombre: String, cantidad: Float,
         unidad: String?, fechaCaducidad: String?, categoriaId: Int?,
