@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Categoria(
     @SerialName("id") val id: Int,
-    @SerialName("nombre") val nombre: String
+    @SerialName("nombre") val nombre: String,
+    @SerialName("user_id") val userId: String? = null
 )

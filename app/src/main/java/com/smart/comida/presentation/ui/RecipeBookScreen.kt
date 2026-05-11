@@ -32,12 +32,13 @@ import com.smart.comida.util.ErrorUtils
 @Composable
 fun RecipeBookScreen(
     favoritesRepository: FavoritesRepository,
+    userId: String,
     onNavigateToRecipeDetail: (Int) -> Unit,
     onNavigateToSearch: () -> Unit,
-    onNavigateBack: () -> Unit // Inyección del manejador de retroceso
+    onNavigateBack: () -> Unit
 ) {
     val viewModel: RecipeBookViewModel = viewModel(
-        factory = RecipeBookViewModelFactory(favoritesRepository)
+        factory = RecipeBookViewModelFactory(favoritesRepository, userId)
     )
 
     val uiState by viewModel.uiState.collectAsState()

@@ -12,34 +12,33 @@ import kotlinx.coroutines.launch
 
 class RecipeDetailViewModel(
     private val repository: FavoritesRepository,
-    private val recipeId: Int // ID de la receta actual en pantalla
+    private val recipeId: Int,
+    private val userId: String
 ) : ViewModel() {
 
-    // El estado reactivo que Compose observará.
-    // Started.WhileSubscribed(5000) optimiza recursos liberando el flujo si la app va a segundo plano.
-    val isFavorite: StateFlow<Boolean> = repository.isFavorite(recipeId)
+    val isFavorite: StateFlow<Boolean> = repository.isFavorite(recipeId, userId)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = false
         )
 
-    // Único punto de entrada para mutar el estado (Evento UDF)
     fun onToggleFavorite(recipe: FavoriteRecipeEntity) {
         viewModelScope.launch {
-            repository.toggleFavorite(recipe)
+            repository.toggleFavorite(recipe, userId)
         }
     }
 }
 
 class RecipeDetailViewModelFactory(
     private val repository: FavoritesRepository,
-    private val recipeId: Int
+    private val recipeId: Int,
+    private val userId: String
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecipeDetailViewModel::class.java)) {
-            return RecipeDetailViewModel(repository, recipeId) as T
+            return RecipeDetailViewModel(repository, recipeId, userId) as T
         }
         throw IllegalArgumentException("Clase ViewModel desconocida")
     }

@@ -9,13 +9,20 @@ import kotlinx.serialization.json.JsonNull
 
 class ListaComprasRepository {
 
+    private fun requireUserId(): String {
+        return SupabaseClient.currentUserId
+            ?: throw IllegalStateException("Usuario no autenticado")
+    }
+
     suspend fun agregarArticulo(nombre: String, cantidadEsperada: Double?, unidad: String?): Result<Unit> {
         return try {
+            val userId = requireUserId()
             val nuevoArticulo = ArticuloCompra(
                 nombre = nombre,
                 cantidadEsperada = cantidadEsperada,
                 unidad = unidad,
-                estado = "Pendiente"
+                estado = "Pendiente",
+                userId = userId
             )
 
             SupabaseClient.client.postgrest["lista_compras"]
@@ -29,8 +36,11 @@ class ListaComprasRepository {
 
     suspend fun obtenerArticulos(): Result<List<ArticuloCompra>> {
         return try {
+            val userId = requireUserId()
             val lista = SupabaseClient.client.postgrest["lista_compras"]
-                .select()
+                .select {
+                    filter { eq("user_id", userId) }
+                }
                 .decodeList<ArticuloCompra>()
             Result.success(lista)
         } catch (e: Exception) {
@@ -40,8 +50,14 @@ class ListaComprasRepository {
 
     suspend fun eliminarArticulo(id: Int): Result<Unit> {
         return try {
+            val userId = requireUserId()
             SupabaseClient.client.postgrest["lista_compras"]
-                .delete { filter { eq("id", id) } }
+                .delete {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -50,8 +66,14 @@ class ListaComprasRepository {
 
     suspend fun actualizarEstado(id: Int, estado: String): Result<Unit> {
         return try {
+            val userId = requireUserId()
             SupabaseClient.client.postgrest["lista_compras"]
-                .update(mapOf("estado" to estado)) { filter { eq("id", id) } }
+                .update(mapOf("estado" to estado)) {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -60,13 +82,19 @@ class ListaComprasRepository {
 
     suspend fun actualizarArticulo(id: Int, nombre: String, cantidadEsperada: Double?, unidad: String?): Result<Unit> {
         return try {
+            val userId = requireUserId()
             val body = buildJsonObject {
                 put("nombre", nombre)
                 if (cantidadEsperada != null) put("cantidad_esperada", cantidadEsperada) else put("cantidad_esperada", JsonNull)
                 if (unidad != null) put("unidad", unidad) else put("unidad", JsonNull)
             }
             SupabaseClient.client.postgrest["lista_compras"]
-                .update(body) { filter { eq("id", id) } }
+                .update(body) {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

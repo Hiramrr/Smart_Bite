@@ -53,6 +53,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
     val currentRoute = navBackStackEntry?.destination?.route
 
     val isUserLoggedIn by authViewModel.isUserLoggedIn.collectAsState()
+    val userId by authViewModel.userId.collectAsState()
 
     val context = LocalContext.current
     val database = remember { AppDatabase.getDatabase(context) }
@@ -72,7 +73,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
         }
     }
 
-    if (isUserLoggedIn == null) {
+    if (isUserLoggedIn == null || (isUserLoggedIn == true && userId == null)) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -357,10 +358,12 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 popExitTransition = { slidePopExitTransition(this) }
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
+                val uid = userId ?: return@composable
 
                 DetalleRecetaScreen(
                     recetaId = id,
                     onVolver = { navController.popBackStack() },
+                    userId = uid,
                     favoritesRepository = favoritesRepository
                 )
             }
@@ -491,8 +494,10 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 enterTransition = { fadeEnterTransition(this) },
                 exitTransition = { fadeExitTransition(this) }
             ) {
+                val uid = userId ?: return@composable
                 RecipeBookScreen(
                     favoritesRepository = favoritesRepository,
+                    userId = uid,
                     onNavigateToRecipeDetail = { id ->
                         navController.navigate("detalle_receta/$id")
                     },

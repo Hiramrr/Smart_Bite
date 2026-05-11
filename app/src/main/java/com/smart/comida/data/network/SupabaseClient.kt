@@ -21,6 +21,8 @@ object SupabaseClient {
     private const val SUPABASE_ANON_KEY = "sb_publishable_hQ8TECVf8BYV3ixteCou4Q_zFwjKYx7"
     private const val WEB_CLIENT_ID = "218825230713-bfg3dbccja0doumvbl19i8hngcd1uejt.apps.googleusercontent.com"
 
+    var currentUserId: String? = null
+
     val client: SupabaseClient = createSupabaseClient(
         supabaseUrl = SUPABASE_URL,
         supabaseKey = SUPABASE_ANON_KEY

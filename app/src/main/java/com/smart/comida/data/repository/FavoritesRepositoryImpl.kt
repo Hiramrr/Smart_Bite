@@ -12,19 +12,19 @@ class FavoritesRepositoryImpl(
     private val dao: FavoriteRecipeDao
 ) : FavoritesRepository {
 
-    override fun getAllFavorites(): Flow<List<FavoriteRecipeEntity>> = dao.getAllFavorites()
+    override fun getAllFavorites(userId: String): Flow<List<FavoriteRecipeEntity>> =
+        dao.getAllFavorites(userId)
 
-    override fun isFavorite(recipeId: Int): Flow<Boolean> = dao.isFavorite(recipeId)
+    override fun isFavorite(recipeId: Int, userId: String): Flow<Boolean> =
+        dao.isFavorite(recipeId, userId)
 
-    override suspend fun toggleFavorite(recipe: FavoriteRecipeEntity) {
+    override suspend fun toggleFavorite(recipe: FavoriteRecipeEntity, userId: String) {
         withContext(Dispatchers.IO) {
-            val exists = dao.isFavorite(recipe.externalRecipeId).first()
+            val exists = dao.isFavorite(recipe.externalRecipeId, userId).first()
             if (exists) {
-                dao.deleteFavorite(recipe.externalRecipeId)
-                // TODO: DELETE hacia el backend de Go
+                dao.deleteFavorite(recipe.externalRecipeId, userId)
             } else {
                 dao.insertFavorite(recipe)
-                // TODO: POST hacia el backend de Go
             }
         }
     }

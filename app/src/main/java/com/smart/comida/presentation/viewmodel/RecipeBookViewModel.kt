@@ -19,11 +19,11 @@ sealed interface RecipeBookUiState {
 }
 
 class RecipeBookViewModel(
-    private val repository: FavoritesRepository
+    private val repository: FavoritesRepository,
+    private val userId: String
 ) : ViewModel() {
 
-
-    val uiState: StateFlow<RecipeBookUiState> = repository.getAllFavorites()
+    val uiState: StateFlow<RecipeBookUiState> = repository.getAllFavorites(userId)
         .map { recipes ->
             if (recipes.isEmpty()) {
                 RecipeBookUiState.Empty
@@ -39,19 +39,20 @@ class RecipeBookViewModel(
         }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L), // Tolera cambios de configuración (ej. rotación de pantalla)
+            started = SharingStarted.WhileSubscribed(5000L),
             initialValue = RecipeBookUiState.Loading
         )
 }
 
 class RecipeBookViewModelFactory(
-    private val repository: FavoritesRepository
+    private val repository: FavoritesRepository,
+    private val userId: String
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecipeBookViewModel::class.java)) {
-            return RecipeBookViewModel(repository) as T
+            return RecipeBookViewModel(repository, userId) as T
         }
         throw IllegalArgumentException("Clase ViewModel desconocida: ${modelClass.name}")
     }

@@ -11,6 +11,11 @@ import java.time.format.DateTimeFormatter
 
 class InventarioRepository {
 
+    private fun requireUserId(): String {
+        return SupabaseClient.currentUserId
+            ?: throw IllegalStateException("Usuario no autenticado")
+    }
+
     suspend fun agregarIngrediente(
         nombre: String,
         cantidad: Float,
@@ -20,13 +25,15 @@ class InventarioRepository {
         imagenUrl: String? = null
     ): Result<Unit> {
         return try {
+            val userId = requireUserId()
             val nuevoIngrediente = Ingrediente(
                 nombre = nombre,
                 cantidad = cantidad,
                 unidad = unidad,
                 fechaCaducidad = fechaCaducidad,
                 categoriaId = categoriaId,
-                imagenUrl = imagenUrl
+                imagenUrl = imagenUrl,
+                userId = userId
             )
 
             SupabaseClient.client.postgrest["ingredientes"]
@@ -40,8 +47,11 @@ class InventarioRepository {
 
     suspend fun obtenerIngredientes(): Result<List<Ingrediente>> {
         return try {
+            val userId = requireUserId()
             val lista = SupabaseClient.client.postgrest["ingredientes"]
-                .select()
+                .select {
+                    filter { eq("user_id", userId) }
+                }
                 .decodeList<Ingrediente>()
 
             Result.success(lista)
@@ -52,8 +62,11 @@ class InventarioRepository {
 
     suspend fun obtenerCategorias(): Result<List<Categoria>> {
         return try {
+            val userId = requireUserId()
             val lista = SupabaseClient.client.postgrest["categorias"]
-                .select()
+                .select {
+                    filter { eq("user_id", userId) }
+                }
                 .decodeList<Categoria>()
             Result.success(lista)
         } catch (e: Exception) {
@@ -63,8 +76,14 @@ class InventarioRepository {
 
     suspend fun existeIngrediente(nombreIngrediente: String): Boolean {
         return try {
+            val userId = requireUserId()
             val coincidencias = SupabaseClient.client.postgrest["ingredientes"]
-                .select { filter { eq("nombre", nombreIngrediente) } }
+                .select {
+                    filter {
+                        eq("nombre", nombreIngrediente)
+                        eq("user_id", userId)
+                    }
+                }
                 .decodeList<Ingrediente>()
 
             coincidencias.isNotEmpty()
@@ -75,8 +94,14 @@ class InventarioRepository {
 
     suspend fun eliminarIngrediente(id: Int): Result<Unit> {
         return try {
+            val userId = requireUserId()
             SupabaseClient.client.postgrest["ingredientes"]
-                .delete { filter { eq("id", id) } }
+                .delete {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -86,6 +111,7 @@ class InventarioRepository {
     suspend fun registrarComoDesperdicio(ingrediente: Ingrediente, cantidadDesperdicio: Float): Result<Unit> {
         val ingredienteId = ingrediente.id
             ?: return Result.failure(IllegalArgumentException("Ingrediente sin ID válido"))
+        val userId = requireUserId()
         val fechaDesecho = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         val desperdicio = Desperdicio(
@@ -94,7 +120,8 @@ class InventarioRepository {
             unidad = ingrediente.unidad,
             fechaCaducidad = ingrediente.fechaCaducidad,
             categoriaId = ingrediente.categoriaId,
-            fechaDesecho = fechaDesecho
+            fechaDesecho = fechaDesecho,
+            userId = userId
         )
 
         return try {
@@ -105,7 +132,12 @@ class InventarioRepository {
                 val nuevaCantidad = ingrediente.cantidad - cantidadDesperdicio
                 if (nuevaCantidad <= 0) {
                     SupabaseClient.client.postgrest["ingredientes"]
-                        .delete { filter { eq("id", ingredienteId) } }
+                        .delete {
+                            filter {
+                                eq("id", ingredienteId)
+                                eq("user_id", userId)
+                            }
+                        }
                 } else {
                     val ingredienteActualizado = Ingrediente(
                         id = ingredienteId,
@@ -114,10 +146,16 @@ class InventarioRepository {
                         unidad = ingrediente.unidad,
                         fechaCaducidad = ingrediente.fechaCaducidad,
                         categoriaId = ingrediente.categoriaId,
-                        imagenUrl = ingrediente.imagenUrl
+                        imagenUrl = ingrediente.imagenUrl,
+                        userId = userId
                     )
                     SupabaseClient.client.postgrest["ingredientes"]
-                        .update(ingredienteActualizado) { filter { eq("id", ingredienteId) } }
+                        .update(ingredienteActualizado) {
+                            filter {
+                                eq("id", ingredienteId)
+                                eq("user_id", userId)
+                            }
+                        }
                 }
             } catch (deleteError: Exception) {
                 runCatching {
@@ -127,6 +165,7 @@ class InventarioRepository {
                                 eq("nombre", ingrediente.nombre)
                                 eq("cantidad", cantidadDesperdicio)
                                 eq("fecha_desecho", fechaDesecho)
+                                eq("user_id", userId)
                             }
                         }
                 }
@@ -141,8 +180,11 @@ class InventarioRepository {
 
     suspend fun obtenerHistorialDesperdicio(): Result<List<Desperdicio>> {
         return try {
+            val userId = requireUserId()
             val lista = SupabaseClient.client.postgrest["historial_desperdicio"]
-                .select()
+                .select {
+                    filter { eq("user_id", userId) }
+                }
                 .decodeList<Desperdicio>()
             Result.success(lista)
         } catch (e: Exception) {
@@ -150,12 +192,17 @@ class InventarioRepository {
         }
     }
 
-    // NUEVA FUNCIÓN: Obtener un ingrediente específico por su ID
     suspend fun obtenerIngredientePorId(id: Int): Result<Ingrediente> {
         return try {
+            val userId = requireUserId()
             val ingrediente = SupabaseClient.client.postgrest["ingredientes"]
-                .select { filter { eq("id", id) } }
-                .decodeSingle<Ingrediente>() // decodeSingle porque solo esperamos uno
+                .select {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
+                .decodeSingle<Ingrediente>()
             Result.success(ingrediente)
         } catch (e: Exception) {
             Result.failure(e)
@@ -164,6 +211,7 @@ class InventarioRepository {
 
     suspend fun obtenerDesperdiciosPorMes(mes: Int, anio: Int): Result<List<Desperdicio>> {
         return try {
+            val userId = requireUserId()
             val inicioMes = String.format("%04d-%02d-01T00:00:00+00:00", anio, mes)
             val finMes = if (mes == 12) {
                 String.format("%04d-01-01T00:00:00+00:00", anio + 1)
@@ -174,6 +222,7 @@ class InventarioRepository {
             val lista = SupabaseClient.client.postgrest["historial_desperdicio"]
                 .select {
                     filter {
+                        eq("user_id", userId)
                         gte("fecha_desecho", inicioMes)
                         lt("fecha_desecho", finMes)
                     }
@@ -191,15 +240,21 @@ class InventarioRepository {
         imagenUrl: String? = null
     ): Result<Unit> {
         return try {
+            val userId = requireUserId()
             val ingredienteActualizado = Ingrediente(
                 id = id,
                 nombre = nombre, cantidad = cantidad, unidad = unidad,
                 fechaCaducidad = fechaCaducidad, categoriaId = categoriaId,
-                imagenUrl = imagenUrl // --- NUEVO ---
+                imagenUrl = imagenUrl, userId = userId
             )
 
             SupabaseClient.client.postgrest["ingredientes"]
-                .update(ingredienteActualizado) { filter { eq("id", id) } }
+                .update(ingredienteActualizado) {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
 
             Result.success(Unit)
         } catch (e: Exception) {

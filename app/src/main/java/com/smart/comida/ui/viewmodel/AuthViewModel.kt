@@ -24,6 +24,9 @@ class AuthViewModel : ViewModel() {
     private val _userAvatarUrl = MutableStateFlow<String?>(null)
     val userAvatarUrl: StateFlow<String?> = _userAvatarUrl
 
+    private val _userId = MutableStateFlow<String?>(null)
+    val userId: StateFlow<String?> = _userId
+
     init {
         checkSession()
     }
@@ -61,7 +64,9 @@ class AuthViewModel : ViewModel() {
             _userEmail.value = user?.email ?: user?.userMetadata?.get("email")?.toString()?.removeSurrounding("\"")
             _userAvatarUrl.value = user?.userMetadata?.get("avatar_url")?.toString()?.removeSurrounding("\"")
                 ?: user?.userMetadata?.get("picture")?.toString()?.removeSurrounding("\"")
-            Log.d("AuthViewModel", "loadUserProfile: name=${_userName.value}, email=${_userEmail.value}")
+            _userId.value = user?.id
+            SupabaseClient.currentUserId = user?.id
+            Log.d("AuthViewModel", "loadUserProfile: name=${_userName.value}, email=${_userEmail.value}, userId=${_userId.value}")
         }
     }
 
@@ -79,6 +84,8 @@ class AuthViewModel : ViewModel() {
             _userName.value = null
             _userEmail.value = null
             _userAvatarUrl.value = null
+            _userId.value = null
+            SupabaseClient.currentUserId = null
         }
     }
 }

@@ -11,5 +11,6 @@ data class Desperdicio(
     @SerialName("unidad") val unidad: String?,
     @SerialName("fecha_caducidad") val fechaCaducidad: String?,
     @SerialName("categoria_id") val categoriaId: Int? = null,
-    @SerialName("fecha_desecho") val fechaDesecho: String
+    @SerialName("fecha_desecho") val fechaDesecho: String,
+    @SerialName("user_id") val userId: String? = null
 )

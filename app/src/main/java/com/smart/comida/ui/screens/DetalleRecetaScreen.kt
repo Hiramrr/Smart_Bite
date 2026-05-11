@@ -29,15 +29,16 @@ import com.smart.comida.ui.viewmodel.RecipeViewModel
 fun DetalleRecetaScreen(
     recetaId: Int,
     onVolver: () -> Unit,
+    userId: String,
     recipeViewModel: RecipeViewModel = viewModel(),
-    favoritesRepository: FavoritesRepository // Inyectado desde tu NavHost
+    favoritesRepository: FavoritesRepository
 ) {
     // 1. Estado de red (Spoonacular)
     val uiState by recipeViewModel.uiState.collectAsState()
 
     // 2. Instanciación del ViewModel Local (Room) usando la Factoría
     val favoriteViewModel: RecipeDetailViewModel = viewModel(
-        factory = RecipeDetailViewModelFactory(favoritesRepository, recetaId)
+        factory = RecipeDetailViewModelFactory(favoritesRepository, recetaId, userId)
     )
 
     // 3. Estado reactivo de la BD local (Flow -> State)
@@ -71,7 +72,8 @@ fun DetalleRecetaScreen(
                                     externalRecipeId = recetaId,
                                     title = receta.title,
                                     imageUrl = receta.image ?: "",
-                                    recipeDataJson = recipeJson
+                                    recipeDataJson = recipeJson,
+                                    userId = userId
                                 )
                                 // Despachamos el evento UDF hacia el ViewModel
                                 favoriteViewModel.onToggleFavorite(entity)

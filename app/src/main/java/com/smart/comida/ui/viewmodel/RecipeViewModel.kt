@@ -56,7 +56,7 @@ class RecipeViewModel : ViewModel() {
                 result.fold(
                     onSuccess = { response ->
                         if (response.results.isEmpty()) {
-                            _uiState.value = RecipeUiState.Error("No se encontraron recetas con '$queryEs'.")
+                            _uiState.value = RecipeUiState.SearchSuccess(emptyList())
                         } else {
                             _uiState.value = RecipeUiState.SearchSuccess(response.results)
                         }
@@ -64,8 +64,9 @@ class RecipeViewModel : ViewModel() {
                     onFailure = { error ->
                         Log.e("API_ERROR", "Error de red: ${error.message}", error)
                         _uiState.value = RecipeUiState.Error("Error de red", error)
-                        })
-                } catch (e: Exception) {
+                    }
+                )
+            } catch (e: Exception) {
                 _uiState.value = RecipeUiState.Error("Error inesperado", e)
             }
         }

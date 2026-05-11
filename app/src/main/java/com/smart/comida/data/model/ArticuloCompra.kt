@@ -10,5 +10,6 @@ data class ArticuloCompra(
     @SerialName("cantidad_esperada") val cantidadEsperada: Double? = null,
     @SerialName("unidad") val unidad: String? = null,
     @SerialName("estado") val estado: String? = null,
-    @SerialName("fecha_agregado") val fechaAgregado: String? = null
+    @SerialName("fecha_agregado") val fechaAgregado: String? = null,
+    @SerialName("user_id") val userId: String? = null
 )
