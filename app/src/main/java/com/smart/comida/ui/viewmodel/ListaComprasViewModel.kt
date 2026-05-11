@@ -30,7 +30,8 @@ class ListaComprasViewModel : ViewModel() {
     }
 
     fun editarArticulo(id: Int, nombre: String, cantidadInput: String, unidad: String?) {
-        if (nombre.isBlank()) {
+        val nombreTrimmed = nombre.trim()
+        if (nombreTrimmed.isBlank()) {
             mensajeOperacion = "El nombre del producto es obligatorio."
             return
         }
@@ -42,7 +43,7 @@ class ListaComprasViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            val resultado = repository.actualizarArticulo(id, nombre, cantidad, unidad)
+            val resultado = repository.actualizarArticulo(id, nombreTrimmed, cantidad, unidad)
             resultado.onSuccess {
                 mensajeOperacion = "Producto actualizado correctamente."
                 cargarArticulos()
@@ -53,7 +54,8 @@ class ListaComprasViewModel : ViewModel() {
     }
 
     fun agregarArticulo(nombre: String, cantidadInput: String, unidad: String?) {
-        if (nombre.isBlank()) {
+        val nombreTrimmed = nombre.trim()
+        if (nombreTrimmed.isBlank()) {
             mensajeOperacion = "El nombre del producto es obligatorio."
             return
         }
@@ -70,7 +72,7 @@ class ListaComprasViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            val resultado = repository.agregarArticulo(nombre, cantidad, unidad)
+            val resultado = repository.agregarArticulo(nombreTrimmed, cantidad, unidad)
             resultado.onSuccess {
                 mensajeOperacion = "Producto añadido a la lista."
                 cargarArticulos()

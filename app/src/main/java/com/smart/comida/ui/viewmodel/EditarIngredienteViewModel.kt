@@ -48,7 +48,9 @@ class EditarIngredienteViewModel : ViewModel() {
 
     // Enviar cambios
     fun guardarCambios(id: Int, imagenBytes: ByteArray? = null) { // Acepta la foto nueva
-        if (nombre.isBlank() || cantidad.isBlank() || unidad.isBlank()) {
+        val nombreTrimmed = nombre.trim()
+
+        if (nombreTrimmed.isBlank() || cantidad.isBlank() || unidad.isBlank()) {
             uiState = IngredienteUiState.Error("Completa los campos obligatorios.")
             return
         }
@@ -93,7 +95,7 @@ class EditarIngredienteViewModel : ViewModel() {
             // ----------------------------------------
 
             val resultado = repository.actualizarIngrediente(
-                id = id, nombre = nombre, cantidad = cant, unidad = unidad,
+                id = id, nombre = nombreTrimmed, cantidad = cant, unidad = unidad,
                 fechaCaducidad = fechaCaducidad.ifBlank { null },
                 categoriaId = categoriaSeleccionada?.id,
                 imagenUrl = urlFinalParaGuardar // Pasamos la URL final

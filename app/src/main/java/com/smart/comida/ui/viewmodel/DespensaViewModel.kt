@@ -52,6 +52,9 @@ class DespensaViewModel : ViewModel() {
     fun cargarIngredientes() {
         uiState = DespensaUiState.Loading
         viewModelScope.launch {
+            // Aprovechamos para cargar categorías también, por si falló en el init o hay nuevas
+            repository.obtenerCategorias().onSuccess { categorias = it }
+
             repository.obtenerIngredientes().onSuccess { lista ->
                 todosLosIngredientes = lista
                 actualizarResumen()

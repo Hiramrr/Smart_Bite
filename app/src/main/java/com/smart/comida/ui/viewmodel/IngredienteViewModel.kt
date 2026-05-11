@@ -38,8 +38,10 @@ class IngredienteViewModel : ViewModel() {
         categoriaId: Int?,
         imagenBytes: ByteArray? = null // --- NUEVO PARÁMETRO PARA LA FOTO ---
     ) {
+        val nombreTrimmed = nombre.trim()
+
         // --- FA-01: 'Campos vacíos' ---
-        if (nombre.isBlank() || cantidadStr.isBlank() || unidad.isBlank()) {
+        if (nombreTrimmed.isBlank() || cantidadStr.isBlank() || unidad.isBlank()) {
             uiState = IngredienteUiState.Error("Por favor, completa los campos obligatorios.")
             return
         }
@@ -72,9 +74,9 @@ class IngredienteViewModel : ViewModel() {
 
         viewModelScope.launch {
             // --- FA-02: 'Ingrediente duplicado' ---
-            val yaExiste = repository.existeIngrediente(nombre)
+            val yaExiste = repository.existeIngrediente(nombreTrimmed)
             if (yaExiste) {
-                uiState = IngredienteUiState.Error("El ingrediente '$nombre' ya está en tu despensa.")
+                uiState = IngredienteUiState.Error("El ingrediente '$nombreTrimmed' ya está en tu despensa.")
                 return@launch
             }
 
@@ -97,7 +99,7 @@ class IngredienteViewModel : ViewModel() {
 
             // Guardamos en Supabase incluyendo la URL de la imagen (si hay una)
             val resultado = repository.agregarIngrediente(
-                nombre = nombre,
+                nombre = nombreTrimmed,
                 cantidad = cantidad,
                 unidad = unidad,
                 fechaCaducidad = fechaCaducidad.ifBlank { null },
