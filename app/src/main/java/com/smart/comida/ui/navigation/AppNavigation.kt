@@ -445,7 +445,24 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 SettingsScreen(
                     onVolver = { navController.popBackStack() },
                     themeViewModel = themeViewModel,
-                    onSignOut = { authViewModel.signOut() }
+                    onSignOut = { authViewModel.signOut() },
+                    onNavigateToCategorias = { navController.navigate("categorias") }
+                )
+            }
+
+            composable(
+                "categorias",
+                enterTransition = { slideEnterTransition(this) },
+                exitTransition = { slideExitTransition(this) },
+                popEnterTransition = { slidePopEnterTransition(this) },
+                popExitTransition = { slidePopExitTransition(this) }
+            ) {
+                CategoriasScreen(
+                    onVolver = {
+                        despensaViewModelCompartido.recargarCategorias()
+                        navController.popBackStack()
+                    },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
 

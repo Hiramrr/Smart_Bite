@@ -156,6 +156,12 @@ class DespensaViewModel : ViewModel() {
         mensajeOperacion = null
     }
 
+    fun recargarCategorias() {
+        viewModelScope.launch {
+            repository.obtenerCategorias().onSuccess { categorias = it }
+        }
+    }
+
     fun cargarHistorialDesperdicio() {
         historialUiState = HistorialDesperdicioUiState.Loading
         viewModelScope.launch {
