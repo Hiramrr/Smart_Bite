@@ -1,6 +1,8 @@
 package com.smart.comida.ui.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,9 +28,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.smart.comida.util.ErrorUtils
 import coil.compose.AsyncImage
+import com.smart.comida.ui.components.BarcodeScannerView
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.IngredienteUiState
 import com.smart.comida.ui.viewmodel.IngredienteViewModel
@@ -57,6 +61,35 @@ fun AgregarIngredienteScreen(
     var fechaCaducidad by remember { mutableStateOf("") }
     var notas by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUrlFromApi by remember { mutableStateOf<String?>(null) }
+
+    // Estado para el escáner
+    var showScanner by remember { mutableStateOf(false) }
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+        if (isGranted) showScanner = true
+    }
+
+    // Actualizar campos cuando se detecta un producto
+    LaunchedEffect(viewModel.productoEscaneado) {
+        viewModel.productoEscaneado?.let { product ->
+            nombre = product.nombre
+            imageUrlFromApi = product.imagenUrl
+            viewModel.clearScannedProduct()
+            showScanner = false
+        }
+    }
 
     // Estados para menús y diálogos
     var expandedCategoria by remember { mutableStateOf(false) }
@@ -107,6 +140,16 @@ fun AgregarIngredienteScreen(
         }
     }
 
+    if (showScanner && hasCameraPermission) {
+        BarcodeScannerView(
+            onBarcodeDetected = { barcode ->
+                viewModel.buscarProductoPorBarcode(barcode)
+            },
+            onClose = { showScanner = false }
+        )
+        return // No mostramos el resto de la pantalla mientras el escáner está activo
+    }
+
     Scaffold(
         containerColor = colorScheme.background,
         topBar = {
@@ -118,8 +161,14 @@ fun AgregarIngredienteScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* OCR Placeholder */ }) {
-                        Icon(Icons.Default.ReceiptLong, contentDescription = "Escanear ticket")
+                    IconButton(onClick = {
+                        if (hasCameraPermission) {
+                            showScanner = true
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear producto")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -151,7 +200,8 @@ fun AgregarIngredienteScreen(
                             unidad = unidad,
                             fechaCaducidad = fechaCaducidad,
                             categoriaId = categoriaSeleccionada?.id,
-                            imagenBytes = imageBytes
+                            imagenBytes = imageBytes,
+                            imageUrlFromApi = imageUrlFromApi
                         )
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -189,6 +239,13 @@ fun AgregarIngredienteScreen(
                 if (imageUri != null) {
                     AsyncImage(
                         model = imageUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (!imageUrlFromApi.isNullOrBlank()) {
+                    AsyncImage(
+                        model = imageUrlFromApi,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

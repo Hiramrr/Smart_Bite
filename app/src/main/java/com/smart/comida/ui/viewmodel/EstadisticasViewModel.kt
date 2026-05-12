@@ -45,7 +45,16 @@ class EstadisticasViewModel : ViewModel() {
     fun cargarEstadisticas() {
         uiState = EstadisticasUiState.Loading
         viewModelScope.launch {
-            val ingredientesResult = repository.obtenerIngredientes()
+            val ahora = LocalDate.now()
+            val esMesActual = anio == ahora.year && mes == ahora.monthValue
+
+            // Solo incluimos el inventario actual como "consumo" si estamos viendo el mes actual.
+            // Para meses pasados, no tenemos historial de consumo, solo de desperdicio.
+            val ingredientesResult = if (esMesActual) {
+                repository.obtenerIngredientes()
+            } else {
+                Result.success(emptyList())
+            }
             val desperdiciosResult = repository.obtenerDesperdiciosPorMes(mes, anio)
 
             if (ingredientesResult.isFailure || desperdiciosResult.isFailure) {

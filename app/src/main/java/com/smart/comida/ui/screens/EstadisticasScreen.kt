@@ -103,24 +103,48 @@ fun EstadisticasScreen(
                 Column(
                     modifier = Modifier
                         .padding(paddingValues)
-                        .fillMaxSize(),
+                        .fillMaxSize()
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    Text(
-                        "Sin datos suficientes",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "No hay registros de consumo o desperdicio para el periodo actual.",
-                        fontSize = 14.sp,
-                        color = colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
                     MonthSelector(viewModel, colorScheme)
+                    
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(RoundedCornerShape(40.dp))
+                                .background(colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                modifier = Modifier.size(60.dp),
+                                tint = colorScheme.outline.copy(alpha = 0.5f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            "Sin datos suficientes",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "No hay registros de consumo o desperdicio para el periodo de ${viewModel.nombreMes}.",
+                            fontSize = 14.sp,
+                            color = colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                    }
                 }
             }
 
@@ -169,42 +193,61 @@ private fun MonthSelector(
     viewModel: EstadisticasViewModel,
     colorScheme: androidx.compose.material3.ColorScheme
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        IconButton(onClick = { viewModel.mesAnterior() }) {
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = "Mes anterior",
-                tint = colorScheme.primary
-            )
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "${viewModel.nombreMes} ${viewModel.anio}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colorScheme.onSurface
-            )
-            Text(
-                "Periodo seleccionado",
-                fontSize = 12.sp,
-                color = colorScheme.onSurfaceVariant
-            )
-        }
-
-        IconButton(
-            onClick = { viewModel.mesSiguiente() },
-            enabled = viewModel.puedeAvanzar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = "Mes siguiente",
-                tint = if (viewModel.puedeAvanzar) colorScheme.primary else colorScheme.outline
-            )
+            IconButton(
+                onClick = { viewModel.mesAnterior() },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colorScheme.surface)
+            ) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Mes anterior",
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "${viewModel.nombreMes} ${viewModel.anio}",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
+                )
+                Text(
+                    "Periodo seleccionado",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(
+                onClick = { viewModel.mesSiguiente() },
+                enabled = viewModel.puedeAvanzar,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (viewModel.puedeAvanzar) colorScheme.surface else Color.Transparent)
+            ) {
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = "Mes siguiente",
+                    tint = if (viewModel.puedeAvanzar) colorScheme.primary else colorScheme.outline.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
@@ -254,33 +297,53 @@ private fun StatCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(modifier = Modifier.padding(20.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 title,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
                 color = colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    "$count",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "items",
+                    fontSize = 14.sp,
+                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+            }
             Text(
-                "$count",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = colorScheme.onSurface
-            )
-            Text(
-                "${formatQuantity(quantity)} uds.",
+                "Total: ${formatQuantity(quantity)} uds.",
                 fontSize = 12.sp,
-                color = colorScheme.onSurfaceVariant
+                color = colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Normal
             )
         }
     }
@@ -295,23 +358,52 @@ private fun ComparisonChart(
     colorScheme: androidx.compose.material3.ColorScheme
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Comparativo mensual",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                "Consumo exitoso vs. desperdicio",
-                fontSize = 13.sp,
-                color = colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(20.dp))
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Comparativo mensual",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface
+                    )
+                    Text(
+                        "Gestión vs. desperdicio",
+                        fontSize = 13.sp,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                val totalSum = cantidadConsumo + cantidadDesperdicio
+                if (totalSum > 0) {
+                    val percentage = (cantidadDesperdicio / totalSum) * 100
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (percentage > 20) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            "%.1f%%".format(Locale.ROOT, percentage),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (percentage > 20) Color(0xFFD32F2F) else Color(0xFF388E3C)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
 
             val maxValue = maxOf(totalConsumo, totalDesperdicio, 1)
 
@@ -331,28 +423,15 @@ private fun ComparisonChart(
                 colorScheme = colorScheme
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.Center
             ) {
                 LegendItem(color = Color(0xFF4CAF50), text = "Consumidos")
+                Spacer(modifier = Modifier.width(24.dp))
                 LegendItem(color = Color(0xFFE53935), text = "Desperdiciados")
-            }
-
-            val totalSum = cantidadConsumo + cantidadDesperdicio
-            if (totalSum > 0) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Porcentaje de desperdicio: %.1f%%".format(
-                        Locale.ROOT,
-                        (cantidadDesperdicio / totalSum) * 100
-                    ),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorScheme.onSurfaceVariant
-                )
             }
         }
     }
@@ -366,20 +445,30 @@ private fun ChartBar(
     color: Color,
     colorScheme: androidx.compose.material3.ColorScheme
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            fontSize = 13.sp,
-            color = colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(100.dp)
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.onSurfaceVariant
+            )
+            Text(
+                "$value",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = colorScheme.onSurface
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Box(
             modifier = Modifier
-                .weight(1f)
-                .height(28.dp)
+                .fillMaxWidth()
+                .height(12.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(colorScheme.surfaceVariant)
         ) {
@@ -393,13 +482,6 @@ private fun ChartBar(
                     .background(color)
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            "$value",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = colorScheme.onSurface
-        )
     }
 }
 
@@ -425,46 +507,78 @@ private fun WasteSummary(
     desperdicios: List<com.smart.comida.data.model.Desperdicio>,
     colorScheme: androidx.compose.material3.ColorScheme
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Ingredientes desperdiciados este mes",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            desperdicios.forEach { desperdicio ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            desperdicio.nombre,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colorScheme.onSurface
-                        )
-                        Text(
-                            "Desechado: ${desperdicio.fechaDesecho.take(10)}",
-                            fontSize = 12.sp,
-                            color = colorScheme.onSurfaceVariant
+    Column {
+        Text(
+            "Detalle de Desperdicios",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+        )
+        
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                desperdicios.forEachIndexed { index, desperdicio ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFFFEBEE)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = Color(0xFFD32F2F),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+                        
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                desperdicio.nombre,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colorScheme.onSurface
+                            )
+                            Text(
+                                "Desechado el ${desperdicio.fechaDesecho.take(10)}",
+                                fontSize = 12.sp,
+                                color = colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                "${formatQuantity(desperdicio.cantidad)} ${desperdicio.unidad ?: ""}".trim(),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD32F2F)
+                            )
+                        }
+                    }
+                    
+                    if (index < desperdicios.size - 1) {
+                        Spacer(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(colorScheme.outlineVariant.copy(alpha = 0.5f))
                         )
                     }
-                    Text(
-                        "${formatQuantity(desperdicio.cantidad)} ${desperdicio.unidad ?: ""}".trim(),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFE53935)
-                    )
                 }
             }
         }

@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.repository.InventarioRepository
+import com.smart.comida.data.repository.OpenFoodFactsRepository
+import com.smart.comida.data.repository.ProductDetails
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -14,9 +16,34 @@ import java.util.Locale
 
 class IngredienteViewModel : ViewModel() {
     private val repository = InventarioRepository()
+    private val openFoodFactsRepository = OpenFoodFactsRepository()
 
     var uiState by mutableStateOf<IngredienteUiState>(IngredienteUiState.Idle)
         private set
+
+    // Estado para el producto detectado por código de barras
+    var productoEscaneado by mutableStateOf<ProductDetails?>(null)
+        private set
+
+    fun buscarProductoPorBarcode(barcode: String) {
+        uiState = IngredienteUiState.Loading
+        viewModelScope.launch {
+            openFoodFactsRepository.buscarProducto(barcode).onSuccess { producto ->
+                if (producto != null) {
+                    productoEscaneado = producto
+                    uiState = IngredienteUiState.Idle // O podrías crear un estado Success específico
+                } else {
+                    uiState = IngredienteUiState.Error("Producto no encontrado en Open Food Facts")
+                }
+            }.onFailure {
+                uiState = IngredienteUiState.Error("Error al consultar el producto", it)
+            }
+        }
+    }
+
+    fun clearScannedProduct() {
+        productoEscaneado = null
+    }
 
     // Estado para guardar las categorías descargadas
     var categorias by mutableStateOf<List<Categoria>>(emptyList())
@@ -36,7 +63,8 @@ class IngredienteViewModel : ViewModel() {
         unidad: String,
         fechaCaducidad: String,
         categoriaId: Int?,
-        imagenBytes: ByteArray? = null // --- NUEVO PARÁMETRO PARA LA FOTO ---
+        imagenBytes: ByteArray? = null,
+        imageUrlFromApi: String? = null // --- NUEVO PARÁMETRO ---
     ) {
         val nombreTrimmed = nombre.trim()
 
@@ -81,30 +109,30 @@ class IngredienteViewModel : ViewModel() {
             }
 
             // --- NUEVA LÓGICA: SUBIR IMAGEN PRIMERO ---
-            var urlImagenSubida: String? = null
+            var urlImagenFinal: String? = imageUrlFromApi // Por defecto usamos la de la API si existe
 
             if (imagenBytes != null) {
-                // Le damos un nombre único basado en el tiempo exacto
+                // Si el usuario tomó una foto manual, esta tiene prioridad
                 val nombreArchivo = "foto_${System.currentTimeMillis()}"
                 val resultadoImagen = repository.subirImagen(imagenBytes, nombreArchivo)
 
                 resultadoImagen.onSuccess { url ->
-                    urlImagenSubida = url // Guardamos el link mágico de Supabase
+                    urlImagenFinal = url 
                 }.onFailure {
                     uiState = IngredienteUiState.Error("No se pudo subir la imagen del ingrediente", it)
-                    return@launch // Si falla la foto, detenemos el guardado
+                    return@launch
                 }
             }
             // ------------------------------------------
 
-            // Guardamos en Supabase incluyendo la URL de la imagen (si hay una)
+            // Guardamos en Supabase incluyendo la URL de la imagen
             val resultado = repository.agregarIngrediente(
                 nombre = nombreTrimmed,
                 cantidad = cantidad,
                 unidad = unidad,
                 fechaCaducidad = fechaCaducidad.ifBlank { null },
                 categoriaId = categoriaId,
-                imagenUrl = urlImagenSubida // --- PASAMOS LA URL ---
+                imagenUrl = urlImagenFinal
             )
 
             resultado.onSuccess {
