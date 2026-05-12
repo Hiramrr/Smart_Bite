@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "run_dir": "/Users/hiram/AndroidStudioProjects/comida/output/hatch-pet/sus-20260512T171612Z",
+  "spritesheet": "/Users/hiram/AndroidStudioProjects/comida/output/hatch-pet/sus-20260512T171612Z/final/spritesheet.webp",
+  "validation": "/Users/hiram/AndroidStudioProjects/comida/output/hatch-pet/sus-20260512T171612Z/final/validation.json",
+  "contact_sheet": "/Users/hiram/AndroidStudioProjects/comida/output/hatch-pet/sus-20260512T171612Z/qa/contact-sheet.png",
+  "review": "/Users/hiram/AndroidStudioProjects/comida/output/hatch-pet/sus-20260512T171612Z/qa/review.json",
+  "videos": "/Users/hiram/AndroidStudioProjects/comida/output/hatch-pet/sus-20260512T171612Z/qa/videos",
+  "package": "/Users/hiram/.codex/pets/sus"
+}

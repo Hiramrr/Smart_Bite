@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.smart.comida.util.ErrorUtils
 import coil.compose.AsyncImage
 import com.smart.comida.data.model.Ingrediente
+import com.smart.comida.ui.components.EmptyState
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
@@ -203,10 +204,14 @@ fun DashboardScreen(
             }
 
             // Buen momento para comprar
+            val hayPorVencer = viewModel.resumen.porVencer > 0
             Card(
-                colors = CardDefaults.cardColors(containerColor = colorScheme.primaryContainer),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (hayPorVencer) colorScheme.primaryContainer else colorScheme.surface
+                ),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                border = if (hayPorVencer) null else androidx.compose.foundation.BorderStroke(1.dp, colorScheme.outlineVariant)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -214,11 +219,19 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Buen momento para comprar 🛒", fontWeight = FontWeight.Bold, color = colorScheme.primary)
                         Text(
-                            "Tienes ${viewModel.resumen.porVencer} ingredientes por vencer en los próximos 7 días.",
+                            if (hayPorVencer) "Buen momento para comprar 🛒" else "Tu despensa está tranquila",
+                            fontWeight = FontWeight.Bold,
+                            color = if (hayPorVencer) colorScheme.primary else colorScheme.onSurface
+                        )
+                        Text(
+                            if (hayPorVencer) {
+                                "Tienes ${viewModel.resumen.porVencer} ingredientes por vencer en los próximos 7 días."
+                            } else {
+                                "No tienes ingredientes por vencer esta semana."
+                            },
                             fontSize = 12.sp,
-                            color = colorScheme.primary
+                            color = if (hayPorVencer) colorScheme.primary else colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
@@ -266,7 +279,10 @@ fun DashboardScreen(
                     )
                 }
                 is DespensaUiState.Success -> {
-                    val ingredientes = uiState.ingredientes.take(4)
+                    val ingredientes = uiState.ingredientes
+                        .filter { diasHastaCaducidad(it) != null }
+                        .sortedBy { diasHastaCaducidad(it) }
+                        .take(4)
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -283,9 +299,20 @@ fun DashboardScreen(
                         )
                     }
                     
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(ingredientes) { ingrediente ->
-                            IngredienteVencerCard(ingrediente) { ingrediente.id?.let(onVerDetalleClick) }
+                    if (ingredientes.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Kitchen,
+                            title = "Nada por vencer pronto",
+                            description = "Cuando un ingrediente esté cerca de caducar, aparecerá aquí.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                        )
+                    } else {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(ingredientes) { ingrediente ->
+                                IngredienteVencerCard(ingrediente) { ingrediente.id?.let(onVerDetalleClick) }
+                            }
                         }
                     }
                 }
@@ -314,6 +341,13 @@ fun ResumenItem(value: String, label: String, bgColor: Color, iconColor: Color, 
 @Composable
 fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
+    val diasRestantes = diasHastaCaducidad(ingrediente)
+    val caducidadText = when (diasRestantes) {
+        null -> ""
+        0L -> "Hoy"
+        1L -> "1 día"
+        else -> "$diasRestantes días"
+    }
     Card(
         modifier = Modifier.width(100.dp).clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
@@ -324,12 +358,19 @@ fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
             modifier = Modifier.padding(8.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(
-                color = colorScheme.errorContainer,
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.padding(bottom = 8.dp)
-            ) {
-                Text("2 días", color = colorScheme.error, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+            if (caducidadText.isNotEmpty()) {
+                Surface(
+                    color = colorScheme.errorContainer,
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        caducidadText,
+                        color = colorScheme.error,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
             }
             if (!ingrediente.imagenUrl.isNullOrEmpty()) {
                 AsyncImage(
@@ -346,4 +387,13 @@ fun IngredienteVencerCard(ingrediente: Ingrediente, onClick: () -> Unit) {
             Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 10.sp, color = colorScheme.onSurfaceVariant, maxLines = 1)
         }
     }
+}
+
+private fun diasHastaCaducidad(ingrediente: Ingrediente): Long? {
+    val fechaCaducidad = ingrediente.fechaCaducidad ?: return null
+    return runCatching {
+        val hoy = java.time.LocalDate.now()
+        val fecha = java.time.LocalDate.parse(fechaCaducidad)
+        java.time.temporal.ChronoUnit.DAYS.between(hoy, fecha)
+    }.getOrNull()?.takeIf { it in 0..7 }
 }

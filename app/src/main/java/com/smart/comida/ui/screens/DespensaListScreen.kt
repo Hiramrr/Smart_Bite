@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
@@ -37,6 +38,7 @@ import com.smart.comida.ui.components.ShimmerIngredientsList
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
+import com.smart.comida.ui.viewmodel.DespensaViewModel.OrdenDespensa
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +51,8 @@ fun DespensaListScreen(
     val uiState = viewModel.uiState
     val categorias = viewModel.categorias
     var expandirCaducidad by remember { mutableStateOf(false) }
+    var mostrarBusqueda by remember { mutableStateOf(viewModel.searchQuery.isNotBlank()) }
+    var expandirOrden by remember { mutableStateOf(false) }
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -63,11 +67,57 @@ fun DespensaListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "Buscar")
+                    IconButton(onClick = { mostrarBusqueda = !mostrarBusqueda }) {
+                        Icon(
+                            if (mostrarBusqueda) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (mostrarBusqueda) "Cerrar búsqueda" else "Buscar"
+                        )
                     }
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.SwapVert, contentDescription = "Ordenar")
+                    Box {
+                        IconButton(onClick = { expandirOrden = true }) {
+                            Icon(Icons.Default.SwapVert, contentDescription = "Ordenar")
+                        }
+                        DropdownMenu(
+                            expanded = expandirOrden,
+                            onDismissRequest = { expandirOrden = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Caducidad primero") },
+                                leadingIcon = {
+                                    if (viewModel.ordenSeleccionado == OrdenDespensa.CADUCIDAD) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.seleccionarOrden(OrdenDespensa.CADUCIDAD)
+                                    expandirOrden = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Nombre A-Z") },
+                                leadingIcon = {
+                                    if (viewModel.ordenSeleccionado == OrdenDespensa.NOMBRE) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.seleccionarOrden(OrdenDespensa.NOMBRE)
+                                    expandirOrden = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Menor stock") },
+                                leadingIcon = {
+                                    if (viewModel.ordenSeleccionado == OrdenDespensa.MENOR_STOCK) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.seleccionarOrden(OrdenDespensa.MENOR_STOCK)
+                                    expandirOrden = false
+                                }
+                            )
+                        }
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Default.Settings, contentDescription = "Configuración")
@@ -85,6 +135,27 @@ fun DespensaListScreen(
         val haptic = LocalHapticFeedback.current
 
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            if (mostrarBusqueda) {
+                OutlinedTextField(
+                    value = viewModel.searchQuery,
+                    onValueChange = { viewModel.actualizarBusqueda(it) },
+                    placeholder = { Text("Buscar en tu despensa") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (viewModel.searchQuery.isNotBlank()) {
+                            IconButton(onClick = { viewModel.actualizarBusqueda("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -216,10 +287,19 @@ fun DespensaListScreen(
                 }
                 is DespensaUiState.Success -> {
                     if (uiState.ingredientes.isEmpty()) {
+                        val hayFiltrosActivos = viewModel.searchQuery.isNotBlank() ||
+                            viewModel.filtroSeleccionado != null ||
+                            viewModel.diasFiltroCaducidad != null
                         EmptyState(
                             icon = Icons.Default.Kitchen,
-                            title = "No se encontraron ingredientes",
-                            description = "Agrega productos a tu despensa para empezar"
+                            title = if (hayFiltrosActivos) "No hay coincidencias" else "Tu despensa está vacía",
+                            description = if (hayFiltrosActivos) {
+                                "Prueba con otro nombre, categoría o rango de caducidad."
+                            } else {
+                                "Agrega productos a tu despensa para empezar."
+                            },
+                            actionLabel = if (hayFiltrosActivos) "Limpiar filtros" else null,
+                            onActionClick = if (hayFiltrosActivos) viewModel::limpiarFiltros else null
                         )
                     } else {
                         LazyColumn(

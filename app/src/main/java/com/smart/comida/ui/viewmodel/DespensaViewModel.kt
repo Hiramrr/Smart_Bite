@@ -35,12 +35,20 @@ class DespensaViewModel : ViewModel() {
         private set
     var searchQuery by mutableStateOf("")
         private set
+    var ordenSeleccionado by mutableStateOf(OrdenDespensa.CADUCIDAD)
+        private set
 
     // Resumen del Dashboard
     var resumen by mutableStateOf(ResumenDespensa(0, 0, 0))
         private set
 
     data class ResumenDespensa(val total: Int, val porVencer: Int, val bajosStock: Int)
+
+    enum class OrdenDespensa {
+        CADUCIDAD,
+        NOMBRE,
+        MENOR_STOCK
+    }
 
     init {
         // Al nacer el ViewModel, descargamos las categorías para los botones
@@ -198,6 +206,18 @@ class DespensaViewModel : ViewModel() {
         aplicarFiltros()
     }
 
+    fun seleccionarOrden(orden: OrdenDespensa) {
+        ordenSeleccionado = orden
+        aplicarFiltros()
+    }
+
+    fun limpiarFiltros() {
+        filtroSeleccionado = null
+        diasFiltroCaducidad = null
+        searchQuery = ""
+        aplicarFiltros()
+    }
+
     private fun aplicarFiltros() {
         var listaFiltrada = todosLosIngredientes
 
@@ -225,6 +245,20 @@ class DespensaViewModel : ViewModel() {
                     }
                 }
             }
+        }
+
+        listaFiltrada = when (ordenSeleccionado) {
+            OrdenDespensa.CADUCIDAD -> listaFiltrada.sortedWith(
+                compareBy<Ingrediente> {
+                    it.fechaCaducidad?.let { fecha ->
+                        runCatching { java.time.LocalDate.parse(fecha) }.getOrNull()
+                    } ?: java.time.LocalDate.MAX
+                }.thenBy { it.nombre.lowercase() }
+            )
+            OrdenDespensa.NOMBRE -> listaFiltrada.sortedBy { it.nombre.lowercase() }
+            OrdenDespensa.MENOR_STOCK -> listaFiltrada.sortedWith(
+                compareBy<Ingrediente> { it.cantidad }.thenBy { it.nombre.lowercase() }
+            )
         }
 
         uiState = DespensaUiState.Success(listaFiltrada)

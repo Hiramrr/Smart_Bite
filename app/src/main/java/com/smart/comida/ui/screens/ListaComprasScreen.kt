@@ -285,6 +285,15 @@ fun ListaComprasScreen(
                             icon = Icons.Default.ShoppingCart,
                             title = if (selectedTab == 0) "Tu lista de compras está vacía" else "No hay compras confirmadas",
                             description = if (selectedTab == 0) "Agrega productos para empezar a planificar tus compras" else "Marca artículos como comprados y confirma la compra para verlos aquí",
+                            actionLabel = if (selectedTab == 0) "Agregar producto" else null,
+                            onActionClick = if (selectedTab == 0) {
+                                {
+                                    mostrarDialogoNuevo = true
+                                    dialogKey++
+                                }
+                            } else {
+                                null
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     } else {

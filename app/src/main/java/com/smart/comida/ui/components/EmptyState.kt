@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,7 +25,9 @@ fun EmptyState(
     icon: ImageVector,
     title: String,
     description: String = "",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onActionClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -55,6 +58,12 @@ fun EmptyState(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
             )
+        }
+        if (actionLabel != null && onActionClick != null) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(onClick = onActionClick) {
+                Text(actionLabel)
+            }
         }
     }
 }
