@@ -255,7 +255,8 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     userName = userName ?: "Usuario",
                     onVerTodosClick = { navController.navigate("despensa_list") },
                     onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") },
-                    onSettingsClick = { navController.navigate("settings") }
+                    onSettingsClick = { navController.navigate("settings") },
+                    onShakeAgregarClick = { navController.navigate("agregar") }
                 )
             }
 

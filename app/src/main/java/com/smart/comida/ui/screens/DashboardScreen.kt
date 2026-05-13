@@ -40,6 +40,7 @@ import com.smart.comida.util.ErrorUtils
 import coil.compose.AsyncImage
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.components.EmptyState
+import com.smart.comida.ui.components.ShakeDetector
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
@@ -51,7 +52,8 @@ fun DashboardScreen(
     userName: String = "Usuario",
     onVerTodosClick: () -> Unit,
     onVerDetalleClick: (Int) -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onShakeAgregarClick: () -> Unit
 ) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
@@ -62,6 +64,10 @@ fun DashboardScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
+
+    ShakeDetector {
+        onShakeAgregarClick()
+    }
 
     Scaffold(
         containerColor = colorScheme.background,

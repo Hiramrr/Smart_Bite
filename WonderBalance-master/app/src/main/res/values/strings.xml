@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">WonderBalance</string>
+    <string name="reporte_mensual">Reporte Mensual</string>
+    <string name="cambiar_mes">Cambiar Mes</string>
+    <string name="balance_periodo">Balance del Periodo</string>
+    <string name="ingresos">Ingresos</string>
+    <string name="gastos">Gastos</string>
+    <string name="sin_movimientos">Sin movimientos</string>
+    <string name="no_hay_datos_periodo">No hay datos para el periodo seleccionado</string>
+    <string name="formato_moneda">$%s</string>
+    <string name="ingresos_con_monto">Ingresos: $%s</string>
+    <string name="gastos_con_monto">Gastos: $%s</string>
+    <string name="balance_con_monto">Balance: $%s</string>
+    <string name="mes_anio">%1$s %2$d</string>
+</resources>
