@@ -24,7 +24,23 @@ data class RecipeDetail(
 )
 
 data class Ingredient(
-    @SerializedName("original") val original: String
+    @SerializedName("id") val id: Int? = null,
+    @SerializedName("original") val original: String,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("amount") val amount: Double? = null,
+    @SerializedName("unit") val unit: String? = null,
+    @SerializedName("measures") val measures: Measures? = null
+)
+
+data class Measures(
+    @SerializedName("us") val us: Measure? = null,
+    @SerializedName("metric") val metric: Measure? = null
+)
+
+data class Measure(
+    @SerializedName("amount") val amount: Double? = null,
+    @SerializedName("unitShort") val unitShort: String? = null,
+    @SerializedName("unitLong") val unitLong: String? = null
 )
 
 data class Instruction(

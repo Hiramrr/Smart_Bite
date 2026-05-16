@@ -1,5 +1,6 @@
 package com.smart.comida.ui.navigation
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -415,10 +416,7 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 popExitTransition = { fadeExitTransition(this) }
             ) {
                 ListaComprasScreen(
-                    onSettingsClick = { navController.navigate("settings") },
-                    onNavigateToAgregar = { nombre, cantidad, unidad ->
-                        navController.navigate("agregar?nombre=$nombre&cantidad=$cantidad&unidad=$unidad")
-                    }
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
 

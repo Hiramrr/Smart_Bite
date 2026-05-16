@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,9 @@ import com.smart.comida.presentation.viewmodel.RecipeDetailViewModel
 import com.smart.comida.presentation.viewmodel.RecipeDetailViewModelFactory
 import com.smart.comida.ui.viewmodel.RecipeUiState
 import com.smart.comida.ui.viewmodel.RecipeViewModel
+import com.smart.comida.ui.viewmodel.ListaComprasViewModel
+import com.smart.comida.ui.viewmodel.AgregarDesdeRecetaState
+import com.smart.comida.ui.viewmodel.IngredienteFaltante
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +35,7 @@ fun DetalleRecetaScreen(
     onVolver: () -> Unit,
     userId: String,
     recipeViewModel: RecipeViewModel = viewModel(),
+    listaComprasViewModel: ListaComprasViewModel = viewModel(),
     favoritesRepository: FavoritesRepository
 ) {
     // 1. Estado de red (Spoonacular)
@@ -50,7 +55,101 @@ fun DetalleRecetaScreen(
         recipeViewModel.getRecipeDetail(recetaId)
     }
 
+    val agregarEstado by remember { derivedStateOf { listaComprasViewModel.agregarDesdeRecetaState } }
+
+    LaunchedEffect(agregarEstado) {
+        if (agregarEstado is AgregarDesdeRecetaState.Success || agregarEstado is AgregarDesdeRecetaState.AllAvailable) {
+            kotlinx.coroutines.delay(3000)
+            listaComprasViewModel.resetearEstadoReceta()
+        }
+    }
+
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    var ingredientesFaltantes by remember { mutableStateOf<List<IngredienteFaltante>>(emptyList()) }
+
+    LaunchedEffect(agregarEstado) {
+        when (agregarEstado) {
+            is AgregarDesdeRecetaState.ShowConfirmation -> {
+                ingredientesFaltantes = (agregarEstado as AgregarDesdeRecetaState.ShowConfirmation).ingredientesFaltantes
+                showConfirmationDialog = true
+            }
+            else -> {}
+        }
+    }
+
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showConfirmationDialog = false
+                listaComprasViewModel.resetearEstadoReceta()
+            },
+            title = { Text("Ingredientes faltantes") },
+            text = {
+                Column {
+                    Text("Se agregarán los siguientes ingredientes a tu lista de compras:")
+                    Spacer(Modifier.height(8.dp))
+                    LazyColumn {
+                        items(ingredientesFaltantes) { ing ->
+                            val cantidad = ing.cantidad?.let { 
+                                val cantidadFormateada = if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2g", it)
+                                "$cantidadFormateada ${ing.unidad ?: ""}"
+                            } ?: ""
+                            Text("• ${ing.nombre} ${cantidad}".trim(), modifier = Modifier.padding(vertical = 2.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmationDialog = false
+                        listaComprasViewModel.agregarFaltantesALista(ingredientesFaltantes)
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmationDialog = false
+                        listaComprasViewModel.resetearEstadoReceta()
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    var snackbarMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(agregarEstado) {
+        when (agregarEstado) {
+            is AgregarDesdeRecetaState.Success -> {
+                snackbarMessage = (agregarEstado as AgregarDesdeRecetaState.Success).message
+            }
+            is AgregarDesdeRecetaState.AllAvailable -> {
+                snackbarMessage = (agregarEstado as AgregarDesdeRecetaState.AllAvailable).message
+            }
+            is AgregarDesdeRecetaState.Error -> {
+                snackbarMessage = (agregarEstado as AgregarDesdeRecetaState.Error).message
+            }
+            else -> {}
+        }
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(snackbarMessage) {
+        snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            snackbarMessage = null
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Preparación") },
@@ -61,6 +160,14 @@ fun DetalleRecetaScreen(
                     // Solo habilitamos el botón si tenemos la data completa para guardar
                     if (uiState is RecipeUiState.DetailSuccess) {
                         val receta = (uiState as RecipeUiState.DetailSuccess).recipe
+
+                        IconButton(
+                            onClick = {
+                                listaComprasViewModel.compararIngredientesConReceta(receta.extendedIngredients)
+                            }
+                        ) {
+                            Icon(Icons.Default.AddShoppingCart, "Agregar ingredientes faltantes a lista de compras")
+                        }
 
                         FavoriteToggleButton(
                             isFavorite = isFavorite,

@@ -23,7 +23,7 @@ class InventarioRepository {
         fechaCaducidad: String?,
         categoriaId: Int?,
         imagenUrl: String? = null
-    ): Result<Unit> {
+    ): Result<Int> {
         return try {
             val userId = requireUserId()
             val nuevoIngrediente = Ingrediente(
@@ -36,9 +36,28 @@ class InventarioRepository {
                 userId = userId
             )
 
-            SupabaseClient.client.postgrest["ingredientes"]
-                .insert(nuevoIngrediente)
+            val resultado = SupabaseClient.client.postgrest["ingredientes"]
+                .insert(nuevoIngrediente) {
+                    select()
+                }
+                .decodeSingle<Ingrediente>()
 
+            Result.success(resultado.id ?: -1)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun actualizarImagenIngrediente(id: Int, imagenUrl: String): Result<Unit> {
+        return try {
+            val userId = requireUserId()
+            SupabaseClient.client.postgrest["ingredientes"]
+                .update("{ \"imagen_url\": \"$imagenUrl\" }") {
+                    filter {
+                        eq("id", id)
+                        eq("user_id", userId)
+                    }
+                }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

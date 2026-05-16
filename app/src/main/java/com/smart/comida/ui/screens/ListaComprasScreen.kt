@@ -41,8 +41,7 @@ import com.smart.comida.ui.viewmodel.ListaComprasViewModel
 @Composable
 fun ListaComprasScreen(
     viewModel: ListaComprasViewModel = viewModel(),
-    onSettingsClick: () -> Unit = {},
-    onNavigateToAgregar: (String, String, String) -> Unit = { _, _, _ -> }
+    onSettingsClick: () -> Unit = {}
 ) {
     val uiState = viewModel.uiState
     val context = LocalContext.current
@@ -53,8 +52,6 @@ fun ListaComprasScreen(
     var articuloEditando by remember { mutableStateOf<ArticuloCompra?>(null) }
     var dialogKey by remember { mutableIntStateOf(0) }
 
-    var mostrarDialogoMoverADespensa by remember { mutableStateOf<ArticuloCompra?>(null) }
-
     LaunchedEffect(Unit) {
         viewModel.cargarArticulos()
     }
@@ -64,32 +61,6 @@ fun ListaComprasScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.limpiarMensajeOperacion()
         }
-    }
-
-    mostrarDialogoMoverADespensa?.let { articulo ->
-        AlertDialog(
-            onDismissRequest = { mostrarDialogoMoverADespensa = null },
-            title = { Text("¿Mover a la despensa?", fontWeight = FontWeight.Bold) },
-            text = { Text("Has marcado '${articulo.nombre}' como comprado. ¿Deseas agregarlo a tu inventario de despensa?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val nombre = articulo.nombre
-                        val cantidad = articulo.cantidadEsperada?.toString() ?: ""
-                        val unidad = articulo.unidad ?: ""
-                        onNavigateToAgregar(nombre, cantidad, unidad)
-                        mostrarDialogoMoverADespensa = null
-                    }
-                ) {
-                    Text("Sí, mover")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { mostrarDialogoMoverADespensa = null }) {
-                    Text("No, solo marcar")
-                }
-            }
-        )
     }
 
     val edit = articuloEditando
@@ -343,9 +314,6 @@ fun ListaComprasScreen(
                                             }
                                             SwipeToDismissBoxValue.StartToEnd -> {
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                if (articulo.estado != "Comprado" && articulo.estado != "Confirmado") {
-                                                    mostrarDialogoMoverADespensa = articulo
-                                                }
                                                 articulo.id?.let { viewModel.marcarComoComprado(it, articulo.estado) }
                                                 false
                                             }
