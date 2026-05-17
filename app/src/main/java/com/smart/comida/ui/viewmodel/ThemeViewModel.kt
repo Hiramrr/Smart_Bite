@@ -2,7 +2,7 @@ package com.smart.comida.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
@@ -15,22 +15,29 @@ import kotlinx.coroutines.launch
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK
+}
+
 class ThemeViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
-        private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+        private val THEME_MODE_KEY = intPreferencesKey("theme_mode")
     }
 
     private val dataStore = application.dataStore
 
-    val isDarkMode: StateFlow<Boolean> = dataStore.data
-        .map { preferences -> preferences[DARK_MODE_KEY] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val themeMode: StateFlow<ThemeMode> = dataStore.data
+        .map { preferences ->
+            val value = preferences[THEME_MODE_KEY] ?: 0
+            ThemeMode.values()[value]
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.SYSTEM)
 
-    fun setDarkMode(enabled: Boolean) {
+    fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch {
             dataStore.edit { preferences ->
-                preferences[DARK_MODE_KEY] = enabled
+                preferences[THEME_MODE_KEY] = mode.ordinal
             }
         }
     }

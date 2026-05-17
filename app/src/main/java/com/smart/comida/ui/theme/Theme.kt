@@ -42,17 +42,17 @@ private val LightColorScheme = lightColorScheme(
 
 private val DarkColorScheme = darkColorScheme(
     primary = GreenDark,
-    onPrimary = Color.White,
+    onPrimary = Color.Black,
     primaryContainer = LightGreenDark,
-    onPrimaryContainer = Color.White,
-    secondary = PurpleAccent,
-    onSecondary = Color.White,
+    onPrimaryContainer = GreenDark,
+    secondary = PurpleAccentDark,
+    onSecondary = Color.Black,
     secondaryContainer = LightPurpleDark,
-    onSecondaryContainer = Color.White,
-    tertiary = OrangeExpiring,
-    onTertiary = Color.White,
+    onSecondaryContainer = PurpleAccentDark,
+    tertiary = OrangeExpiringDark,
+    onTertiary = Color.Black,
     tertiaryContainer = LightOrangeDark,
-    onTertiaryContainer = Color.White,
+    onTertiaryContainer = OrangeExpiringDark,
     background = BackgroundDark,
     onBackground = TextLight,
     surface = SurfaceDark,
@@ -60,8 +60,8 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = CardDark,
     onSurfaceVariant = TextGrayDark,
     outline = GrayBorderDark,
-    error = RedExpiring,
-    onError = Color.White
+    error = RedExpiringDark,
+    onError = Color.Black
 )
 
 @Composable

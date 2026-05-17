@@ -9,6 +9,8 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.SettingsSystemDaydream
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smart.comida.ui.theme.*
+import com.smart.comida.ui.viewmodel.ThemeMode
 import com.smart.comida.ui.viewmodel.ThemeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +30,7 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     onNavigateToCategorias: () -> Unit = {}
 ) {
-    val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+    val themeMode by themeViewModel.themeMode.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -74,16 +77,15 @@ fun SettingsScreen(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(16.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(bottom = 12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.DarkMode,
@@ -93,26 +95,63 @@ fun SettingsScreen(
                         )
                         Column {
                             Text(
-                                "Modo Oscuro",
+                                "Tema",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "Cambia la apariencia de la app",
+                                "Elige la apariencia de la app",
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                    Switch(
-                        checked = isDarkMode,
-                        onCheckedChange = { themeViewModel.setDarkMode(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+
+                    val themeOptions = listOf(
+                        ThemeMode.SYSTEM to "Automático" to Icons.Default.SettingsSystemDaydream,
+                        ThemeMode.LIGHT to "Claro" to Icons.Default.LightMode,
+                        ThemeMode.DARK to "Oscuro" to Icons.Default.DarkMode
                     )
+
+                    themeOptions.forEach { (mode, label) -> icon ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { themeViewModel.setThemeMode(mode) }
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (themeMode == mode) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    label,
+                                    fontSize = 15.sp,
+                                    fontWeight = if (themeMode == mode) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (themeMode == mode) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            RadioButton(
+                                selected = themeMode == mode,
+                                onClick = { themeViewModel.setThemeMode(mode) },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary,
+                                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                    }
                 }
             }
 
