@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.smart.comida.data.network.RetrofitClient
 import com.smart.comida.ui.navigation.AppNavigation
 import com.smart.comida.ui.theme.ComidaTheme
 import com.smart.comida.ui.viewmodel.ThemeViewModel
@@ -23,6 +24,9 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
         super.onCreate(savedInstanceState)
+
+        RetrofitClient.initialize(this)
+
         setContent {
             val themeViewModel: ThemeViewModel = viewModel()
             val isDarkMode by themeViewModel.isDarkMode.collectAsState()

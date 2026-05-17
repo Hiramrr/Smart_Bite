@@ -104,4 +104,6 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
     implementation(libs.barcode.scanning)
+
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 }

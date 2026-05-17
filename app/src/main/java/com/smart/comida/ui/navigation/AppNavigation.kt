@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -36,13 +38,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smart.comida.data.local.AppDatabase
+import com.smart.comida.data.local.PreferencesDataStore
 import com.smart.comida.data.repository.FavoritesRepositoryImpl
+import com.smart.comida.data.repository.PreferencesRepositoryImpl
 import com.smart.comida.presentation.ui.RecipeBookScreen
 import com.smart.comida.ui.screens.*
 import com.smart.comida.ui.theme.PrimaryGreen
 import com.smart.comida.ui.viewmodel.AuthViewModel
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import com.smart.comida.ui.viewmodel.EstadisticasViewModel
+import com.smart.comida.ui.viewmodel.PreferencesViewModel
 import com.smart.comida.ui.viewmodel.ThemeViewModel
 
 @Composable
@@ -501,7 +506,30 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                     userEmail = userEmail,
                     userAvatarUrl = userAvatarUrl,
                     onSettingsClick = { navController.navigate("settings") },
+                    onDietaryPreferencesClick = {
+                        navController.navigate("preferences")
+                    },
                     onSignOut = { authViewModel.signOut() }
+                )
+            }
+
+            composable("preferences") {
+                val context = LocalContext.current
+
+                val dataStore = remember { PreferencesDataStore(context) }
+
+                val repository = remember { PreferencesRepositoryImpl(dataStore) }
+
+                val factory = viewModelFactory {
+                    initializer {
+                        PreferencesViewModel(repository)
+                    }
+                }
+
+                val viewModel: PreferencesViewModel = viewModel(factory = factory)
+                PreferencesScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

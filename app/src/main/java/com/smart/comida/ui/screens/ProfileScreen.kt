@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Restaurant // <-- Icono añadido para dietas
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ fun ProfileScreen(
     userEmail: String? = null,
     userAvatarUrl: String? = null,
     onSettingsClick: () -> Unit,
+    onDietaryPreferencesClick: () -> Unit,
     onSignOut: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -126,6 +128,12 @@ fun ProfileScreen(
                     fontWeight = FontWeight.Bold,
                     color = colorScheme.primary,
                     modifier = Modifier.padding(start = 8.dp)
+                )
+
+                ProfileOptionCard(
+                    icon = Icons.Default.Restaurant,
+                    label = "Preferencias Dietéticas",
+                    onClick = onDietaryPreferencesClick
                 )
 
                 ProfileOptionCard(
