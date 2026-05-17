@@ -109,12 +109,12 @@ fun SettingsScreen(
                     }
 
                     val themeOptions = listOf(
-                        ThemeMode.SYSTEM to "Automático" to Icons.Default.SettingsSystemDaydream,
-                        ThemeMode.LIGHT to "Claro" to Icons.Default.LightMode,
-                        ThemeMode.DARK to "Oscuro" to Icons.Default.DarkMode
+                        Triple(ThemeMode.SYSTEM, "Automático", Icons.Default.SettingsSystemDaydream),
+                        Triple(ThemeMode.LIGHT, "Claro", Icons.Default.LightMode),
+                        Triple(ThemeMode.DARK, "Oscuro", Icons.Default.DarkMode)
                     )
 
-                    themeOptions.forEach { (mode, label) -> icon ->
+                    themeOptions.forEach { (mode, label, icon) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
