@@ -48,10 +48,15 @@ import com.smart.comida.ui.viewmodel.AuthViewModel
 import com.smart.comida.ui.viewmodel.DespensaViewModel
 import com.smart.comida.ui.viewmodel.EstadisticasViewModel
 import com.smart.comida.ui.viewmodel.PreferencesViewModel
+import com.smart.comida.ui.viewmodel.RecipeViewModel
 import com.smart.comida.ui.viewmodel.ThemeViewModel
 
 @Composable
-fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: AuthViewModel = viewModel()) {
+fun AppNavigation(
+    themeViewModel: ThemeViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel(),
+    recipeViewModel: RecipeViewModel = viewModel()
+) {
     val navController = rememberNavController()
     val despensaViewModelCompartido: DespensaViewModel = viewModel()
 
@@ -258,11 +263,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel = viewModel(), authViewModel: A
                 val userName by authViewModel.userName.collectAsState()
                 DashboardScreen(
                     viewModel = despensaViewModelCompartido,
+                    recipeViewModel = recipeViewModel,
                     userName = userName ?: "Usuario",
                     onVerTodosClick = { navController.navigate("despensa_list") },
                     onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") },
                     onSettingsClick = { navController.navigate("settings") },
-                    onShakeAgregarClick = { navController.navigate("agregar") }
+                    onShakeAgregarClick = { navController.navigate("agregar") },
+                    onRecetaClick = { id -> navController.navigate("detalle_receta/$id") }
                 )
             }
 

@@ -11,6 +11,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.smart.comida.ui.components.ShimmerResumenCards
 import com.smart.comida.ui.components.ShimmerIngredientVencerCard
+import com.smart.comida.ui.components.ShimmerRecipeCard
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,16 +45,21 @@ import com.smart.comida.ui.components.ShakeDetector
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
 import com.smart.comida.ui.viewmodel.DespensaViewModel
+import com.smart.comida.ui.viewmodel.RecipeViewModel
+import com.smart.comida.ui.viewmodel.RecommendationsUiState
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: DespensaViewModel,
+    recipeViewModel: RecipeViewModel,
     userName: String = "Usuario",
     onVerTodosClick: () -> Unit,
     onVerDetalleClick: (Int) -> Unit,
     onSettingsClick: () -> Unit,
-    onShakeAgregarClick: () -> Unit
+    onShakeAgregarClick: () -> Unit,
+    onRecetaClick: (Int) -> Unit
 ) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
@@ -62,6 +68,14 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         viewModel.cargarIngredientes()
     }
+
+    LaunchedEffect(uiState) {
+        if (uiState is DespensaUiState.Success) {
+            recipeViewModel.getRecommendationsFromPantry(uiState.ingredientes)
+        }
+    }
+
+    val recommendationsUiState by recipeViewModel.recommendationsUiState.collectAsState()
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -257,6 +271,12 @@ fun DashboardScreen(
                 }
             }
 
+            // ¿Qué cocino hoy? - Recomendaciones basadas en caducidad
+            RecommendationsSection(
+                uiState = recommendationsUiState,
+                onRecetaClick = onRecetaClick
+            )
+
             // Por vencer pronto
             when (uiState) {
                 is DespensaUiState.Loading -> {
@@ -402,4 +422,63 @@ private fun diasHastaCaducidad(ingrediente: Ingrediente): Long? {
         val fecha = java.time.LocalDate.parse(fechaCaducidad)
         java.time.temporal.ChronoUnit.DAYS.between(hoy, fecha)
     }.getOrNull()?.takeIf { it in 0..7 }
+}
+
+@Composable
+fun RecommendationsSection(
+    uiState: RecommendationsUiState,
+    onRecetaClick: (Int) -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            "¿Qué cocino hoy? 🍳",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = colorScheme.onBackground
+        )
+
+        when (uiState) {
+            is RecommendationsUiState.Loading -> {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(3) {
+                        Box(modifier = Modifier.width(200.dp)) {
+                            ShimmerRecipeCard()
+                        }
+                    }
+                }
+            }
+            is RecommendationsUiState.Success -> {
+                if (uiState.recipes.isNotEmpty()) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 8.dp)
+                    ) {
+                        items(uiState.recipes) { receta ->
+                            Box(modifier = Modifier.width(200.dp)) {
+                                RecipeCard(receta = receta, onClick = { onRecetaClick(receta.id) })
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        "No encontramos recetas con tus ingredientes actuales.",
+                        fontSize = 14.sp,
+                        color = colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            }
+            is RecommendationsUiState.Error -> {
+                Text(
+                    "No pudimos cargar recomendaciones en este momento.",
+                    fontSize = 14.sp,
+                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            else -> {}
+        }
+    }
 }

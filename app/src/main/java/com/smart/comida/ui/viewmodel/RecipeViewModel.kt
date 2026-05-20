@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.smart.comida.data.model.Ingrediente
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 sealed class RecipeUiState {
     object Idle : RecipeUiState()
@@ -23,11 +26,21 @@ sealed class RecipeUiState {
     data class Error(val message: String, val throwable: Throwable? = null) : RecipeUiState()
 }
 
+sealed class RecommendationsUiState {
+    object Idle : RecommendationsUiState()
+    object Loading : RecommendationsUiState()
+    data class Success(val recipes: List<Recipe>) : RecommendationsUiState()
+    data class Error(val message: String) : RecommendationsUiState()
+}
+
 class RecipeViewModel : ViewModel() {
 
     private val repository = RecipeRepository()
     private val _uiState = MutableStateFlow<RecipeUiState>(RecipeUiState.Idle)
     val uiState: StateFlow<RecipeUiState> = _uiState.asStateFlow()
+
+    private val _recommendationsUiState = MutableStateFlow<RecommendationsUiState>(RecommendationsUiState.Idle)
+    val recommendationsUiState: StateFlow<RecommendationsUiState> = _recommendationsUiState.asStateFlow()
 
     init {
         // Al iniciar el ViewModel, nos aseguramos de que los diccionarios estén listos
@@ -124,6 +137,65 @@ class RecipeViewModel : ViewModel() {
                     _uiState.value = RecipeUiState.Error("No se pudo obtener el detalle de la receta", error)
                 }
             )
+        }
+    }
+
+    // -----------------------------------------------------
+    // Recomendaciones basadas en Despensa
+    // -----------------------------------------------------
+    fun getRecommendationsFromPantry(ingredientes: List<Ingrediente>) {
+        if (ingredientes.isEmpty()) {
+            _recommendationsUiState.value = RecommendationsUiState.Idle
+            return
+        }
+
+        _recommendationsUiState.value = RecommendationsUiState.Loading
+
+        viewModelScope.launch {
+            try {
+                // 1. Filtrar los que tienen fecha de caducidad y ordenarlos por cercanía
+                val hoy = LocalDate.now()
+                val ingredientesClave = ingredientes
+                    .filter { !it.fechaCaducidad.isNullOrEmpty() }
+                    .mapNotNull { ing ->
+                        val fecha = runCatching { LocalDate.parse(ing.fechaCaducidad) }.getOrNull()
+                        if (fecha != null && fecha.isAfter(hoy.minusDays(1))) {
+                            ing to fecha
+                        } else null
+                    }
+                    .sortedBy { it.second }
+                    .take(3)
+                    .map { it.first.nombre }
+
+                if (ingredientesClave.isEmpty()) {
+                    // Si no hay nada por vencer, tomamos 3 ingredientes al azar o los primeros
+                    val randomIngs = ingredientes.shuffled().take(3).map { it.nombre }
+                    buscarRecomendaciones(randomIngs.joinToString(", "))
+                } else {
+                    buscarRecomendaciones(ingredientesClave.joinToString(", "))
+                }
+            } catch (e: Exception) {
+                Log.e("RECOMMENDATIONS", "Error al procesar ingredientes", e)
+                _recommendationsUiState.value = RecommendationsUiState.Error("Error al procesar ingredientes")
+            }
+        }
+    }
+
+    private suspend fun buscarRecomendaciones(queryEs: String) {
+        try {
+            val queryEn = TranslationHelper.translateToEnglish(queryEs)
+            val result = repository.searchRecipes(queryEn)
+
+            result.fold(
+                onSuccess = { response ->
+                    _recommendationsUiState.value = RecommendationsUiState.Success(response.results)
+                },
+                onFailure = { error ->
+                    _recommendationsUiState.value = RecommendationsUiState.Error("Error de red")
+                }
+            )
+        } catch (e: Exception) {
+            _recommendationsUiState.value = RecommendationsUiState.Error("Error inesperado")
         }
     }
 }
