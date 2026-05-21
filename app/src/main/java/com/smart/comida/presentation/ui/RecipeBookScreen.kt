@@ -7,11 +7,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -43,6 +42,9 @@ fun RecipeBookScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    // Estado local para manejar el flujo alternativo FA-01 del Diálogo de Confirmación
+    var recipeToDelete by remember { mutableStateOf<FavoriteRecipeEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -80,19 +82,57 @@ fun RecipeBookScreen(
                     com.smart.comida.ui.components.ErrorState(
                         title = errorDetails.title,
                         message = state.message.ifBlank { errorDetails.message },
-                        onRetry = { /* Flujo reactivo */ },
+                        onRetry = { viewModel.loadFavorites() }, // Recarga reactiva
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 is RecipeBookUiState.Success -> {
                     RecipeGrid(
                         recipes = state.recipes,
-                        onRecipeClick = onNavigateToRecipeDetail
+                        onRecipeClick = onNavigateToRecipeDetail,
+                        onDeleteClick = { recipe -> recipeToDelete = recipe }
                     )
                 }
             }
+
+            // Inyección declarativa del Diálogo de Confirmación (Pasos 3, 4, FA-01)
+            recipeToDelete?.let { recipe ->
+                DeleteConfirmationDialog(
+                    recipeTitle = recipe.title,
+                    onConfirm = {
+                        viewModel.deleteRecipeFromFavorites(recipe.externalRecipeId)
+                        recipeToDelete = null // Cierra el diálogo después de confirmar
+                    },
+                    onDismiss = {
+                        recipeToDelete = null // FA-01: Cancelar eliminación sin alterar el estado remoto
+                    }
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    recipeTitle: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Eliminar de favoritos") },
+        text = { Text(text = "¿Estás seguro de que deseas quitar \"$recipeTitle\" de tu recetario personal?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = "Confirmar", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Cancelar")
+            }
+        }
+    )
 }
 
 @Composable
@@ -130,7 +170,8 @@ private fun EmptyRecipeBook(onNavigateToSearch: () -> Unit, modifier: Modifier =
 @Composable
 private fun RecipeGrid(
     recipes: List<FavoriteRecipeEntity>,
-    onRecipeClick: (Int) -> Unit
+    onRecipeClick: (Int) -> Unit,
+    onDeleteClick: (FavoriteRecipeEntity) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -140,35 +181,58 @@ private fun RecipeGrid(
         modifier = Modifier.fillMaxSize()
     ) {
         items(recipes, key = { it.externalRecipeId }) { recipe ->
-            RecipeCard(recipe = recipe, onClick = { onRecipeClick(recipe.externalRecipeId) })
+            RecipeCard(
+                recipe = recipe,
+                onClick = { onRecipeClick(recipe.externalRecipeId) },
+                onDeleteClick = { onDeleteClick(recipe) }
+            )
         }
     }
 }
 
 @Composable
-private fun RecipeCard(recipe: FavoriteRecipeEntity, onClick: () -> Unit) {
+private fun RecipeCard(
+    recipe: FavoriteRecipeEntity,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column {
-            AsyncImage(
-                model = recipe.imageUrl,
-                contentDescription = recipe.title,
-                contentScale = ContentScale.Crop,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column {
+                AsyncImage(
+                    model = recipe.imageUrl,
+                    contentDescription = recipe.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                )
+                Text(
+                    text = recipe.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 44.dp)
+                )
+            }
+            // Icono estructurado según CU-12 Paso 2
+            IconButton(
+                onClick = onDeleteClick,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            )
-            Text(
-                text = recipe.title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(12.dp)
-            )
+                    .align(Alignment.BottomEnd)
+                    .padding(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar de favoritos",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }
