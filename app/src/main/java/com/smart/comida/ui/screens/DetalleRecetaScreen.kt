@@ -86,7 +86,7 @@ fun DetalleRecetaScreen(
             title = { Text("Ingredientes faltantes") },
             text = {
                 Column {
-                    Text("Se agregarán los siguientes ingredientes a tu lista de compras:")
+                    Text("Faltan estos ingredientes. Puedes agregarlos a tu lista de compras:")
                     Spacer(Modifier.height(8.dp))
                     LazyColumn {
                         items(ingredientesFaltantes) { ing ->
@@ -166,7 +166,7 @@ fun DetalleRecetaScreen(
                                 listaComprasViewModel.compararIngredientesConReceta(receta.extendedIngredients)
                             }
                         ) {
-                            Icon(Icons.Default.AddShoppingCart, "Agregar ingredientes faltantes a lista de compras")
+                            Icon(Icons.Default.AddShoppingCart, "Revisar ingredientes faltantes")
                         }
 
                         FavoriteToggleButton(

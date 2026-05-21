@@ -13,7 +13,7 @@ import com.smart.comida.data.repository.ListaComprasRepository
 import com.smart.comida.data.repository.OpenFoodFactsRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import java.text.Normalizer
 
 data class IngredienteFaltante(
     val nombre: String,
@@ -191,7 +191,7 @@ class ListaComprasViewModel : ViewModel() {
                     val faltantes = identificarFaltantes(ingredientesReceta, inventario)
                     if (faltantes.isEmpty()) {
                         agregarDesdeRecetaState = AgregarDesdeRecetaState.AllAvailable(
-                            "Todos los ingredientes necesarios están en la despensa con cantidad suficiente."
+                            "Ya tienes todos los ingredientes necesarios para preparar esta receta."
                         )
                     } else {
                         agregarDesdeRecetaState = AgregarDesdeRecetaState.ShowConfirmation(faltantes)
@@ -216,16 +216,16 @@ class ListaComprasViewModel : ViewModel() {
         val faltantes = mutableListOf<IngredienteFaltante>()
 
         for (ingredienteReceta in ingredientesReceta) {
-            val nombreReceta = ingredienteReceta.name?.lowercase()?.trim() ?: ""
+            val (nombreLimpioOriginal, cantidadExtraidaOriginal) = extraerCantidadDeOriginal(ingredienteReceta.original)
+            val nombreReceta = ingredienteReceta.name?.takeIf { it.isNotBlank() } ?: nombreLimpioOriginal
             val cantidadReceta = ingredienteReceta.amount
-            val unidadReceta = ingredienteReceta.unit?.lowercase()?.trim()
+            val unidadReceta = ingredienteReceta.unit?.lowercase()?.trim()?.takeIf { it.isNotBlank() }
 
             if (nombreReceta.isBlank()) {
-                val (nombreLimpio, cantidadExtraida) = extraerCantidadDeOriginal(ingredienteReceta.original)
                 faltantes.add(
                     IngredienteFaltante(
-                        nombre = nombreLimpio,
-                        cantidad = cantidadExtraida ?: cantidadReceta,
+                        nombre = ingredienteReceta.original,
+                        cantidad = cantidadExtraidaOriginal ?: cantidadReceta,
                         unidad = unidadReceta
                     )
                 )
@@ -233,28 +233,32 @@ class ListaComprasViewModel : ViewModel() {
             }
 
             val ingredientesCoincidentes = inventario.filter { ing ->
-                ing.nombre.lowercase().trim() == nombreReceta
+                nombresIngredientesCoinciden(ing.nombre, nombreReceta)
             }
 
             if (ingredientesCoincidentes.isEmpty()) {
-                val (nombreLimpio, cantidadExtraida) = extraerCantidadDeOriginal(ingredienteReceta.original)
                 faltantes.add(
                     IngredienteFaltante(
-                        nombre = nombreLimpio.ifBlank { ingredienteReceta.name ?: ingredienteReceta.original },
-                        cantidad = cantidadExtraida ?: cantidadReceta,
+                        nombre = nombreLimpioOriginal.ifBlank { ingredienteReceta.name ?: ingredienteReceta.original },
+                        cantidad = cantidadExtraidaOriginal ?: cantidadReceta,
                         unidad = unidadReceta
                     )
                 )
             } else if (cantidadReceta != null && unidadReceta != null) {
-                val cantidadTotalEnDespensa = ingredientesCoincidentes
-                    .filter { it.unidad?.lowercase()?.trim() == unidadReceta }
-                    .sumOf { it.cantidad.toDouble() }
+                val coincidenciasMismaUnidad = ingredientesCoincidentes.filter {
+                    it.unidad?.lowercase()?.trim() == unidadReceta
+                }
+
+                if (coincidenciasMismaUnidad.isEmpty()) {
+                    continue
+                }
+
+                val cantidadTotalEnDespensa = coincidenciasMismaUnidad.sumOf { it.cantidad.toDouble() }
 
                 if (cantidadTotalEnDespensa < cantidadReceta) {
-                    val (nombreLimpio, cantidadExtraida) = extraerCantidadDeOriginal(ingredienteReceta.original)
                     faltantes.add(
                         IngredienteFaltante(
-                            nombre = nombreLimpio.ifBlank { ingredienteReceta.name ?: ingredienteReceta.original },
+                            nombre = nombreLimpioOriginal.ifBlank { ingredienteReceta.name ?: ingredienteReceta.original },
                             cantidad = cantidadReceta - cantidadTotalEnDespensa,
                             unidad = unidadReceta
                         )
@@ -265,10 +269,9 @@ class ListaComprasViewModel : ViewModel() {
             } else {
                 val cantidadTotalEnDespensa = ingredientesCoincidentes.sumOf { it.cantidad.toDouble() }
                 if (cantidadTotalEnDespensa < cantidadReceta) {
-                    val (nombreLimpio, cantidadExtraida) = extraerCantidadDeOriginal(ingredienteReceta.original)
                     faltantes.add(
                         IngredienteFaltante(
-                            nombre = nombreLimpio.ifBlank { ingredienteReceta.name ?: ingredienteReceta.original },
+                            nombre = nombreLimpioOriginal.ifBlank { ingredienteReceta.name ?: ingredienteReceta.original },
                             cantidad = cantidadReceta - cantidadTotalEnDespensa,
                             unidad = unidadReceta
                         )
@@ -278,6 +281,48 @@ class ListaComprasViewModel : ViewModel() {
         }
 
         return faltantes
+    }
+
+    private fun nombresIngredientesCoinciden(nombreInventario: String, nombreReceta: String): Boolean {
+        val inventarioNormalizado = normalizarNombreIngrediente(nombreInventario)
+        val recetaNormalizada = normalizarNombreIngrediente(nombreReceta)
+
+        if (inventarioNormalizado.isBlank() || recetaNormalizada.isBlank()) return false
+        if (inventarioNormalizado == recetaNormalizada) return true
+
+        val tokensInventario = inventarioNormalizado.split(" ").filter { it.length > 2 }
+        val tokensReceta = recetaNormalizada.split(" ").filter { it.length > 2 }
+
+        return tokensInventario.isNotEmpty() &&
+            tokensReceta.isNotEmpty() &&
+            (tokensContienenTodos(tokensInventario, tokensReceta) ||
+                tokensContienenTodos(tokensReceta, tokensInventario))
+    }
+
+    private fun normalizarNombreIngrediente(nombre: String): String {
+        val sinAcentos = Normalizer.normalize(nombre.lowercase().trim(), Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+
+        return sinAcentos
+            .replace(Regex("[^a-z0-9ñ\\s]"), " ")
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+    }
+
+    private fun tokensContienenTodos(tokensBase: List<String>, tokensBuscados: List<String>): Boolean {
+        return tokensBuscados.all { buscado ->
+            tokensBase.any { base -> variantesPluralSingular(base).intersect(variantesPluralSingular(buscado)).isNotEmpty() }
+        }
+    }
+
+    private fun variantesPluralSingular(palabra: String): Set<String> {
+        return buildSet {
+            add(palabra)
+            if (palabra.length > 3 && palabra.endsWith("s")) add(palabra.dropLast(1))
+            if (palabra.length > 4 && palabra.endsWith("es")) add(palabra.dropLast(2))
+            if (palabra.length > 4 && palabra.endsWith("ces")) add("${palabra.dropLast(3)}z")
+        }
     }
 
     private fun extraerCantidadDeOriginal(original: String): Pair<String, Double?> {
