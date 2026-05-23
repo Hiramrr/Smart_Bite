@@ -125,7 +125,7 @@ class ListaComprasViewModel : ViewModel() {
             repository.actualizarEstado(id, nuevoEstado).onSuccess {
                 cargarArticulos()
             }.onFailure {
-                mensajeOperacion = "Error al actualizar: ${it.message}"
+                mensajeOperacion = "No se pudo actualizar el artículo, revisa tu conexion a internet"
             }
         }
     }
