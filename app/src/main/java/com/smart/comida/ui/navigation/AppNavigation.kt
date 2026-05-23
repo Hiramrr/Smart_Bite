@@ -84,6 +84,12 @@ fun AppNavigation(
         }
     }
 
+    LaunchedEffect(currentRoute, isUserLoggedIn) {
+        if (isUserLoggedIn == true && currentRoute in listOf("dashboard", "despensa_list")) {
+            despensaViewModelCompartido.cargarIngredientes()
+        }
+    }
+
     if (isUserLoggedIn == null || (isUserLoggedIn == true && userId == null)) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()

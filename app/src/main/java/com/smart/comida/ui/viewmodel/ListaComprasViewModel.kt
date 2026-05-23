@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartbite.data.Ingredient
 import com.smart.comida.data.model.ArticuloCompra
+import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.repository.InventarioRepository
 import com.smart.comida.data.repository.ListaComprasRepository
@@ -19,6 +20,15 @@ data class IngredienteFaltante(
     val nombre: String,
     val cantidad: Double?,
     val unidad: String?
+)
+
+data class CompraConfirmadaItem(
+    val articuloId: Int,
+    val nombre: String,
+    val cantidad: Float,
+    val unidad: String?,
+    val fechaCaducidad: String,
+    val categoriaId: Int
 )
 
 sealed class AgregarDesdeRecetaState {
@@ -40,6 +50,9 @@ class ListaComprasViewModel : ViewModel() {
         private set
 
     var agregarDesdeRecetaState by mutableStateOf<AgregarDesdeRecetaState>(AgregarDesdeRecetaState.Idle)
+        private set
+
+    var categorias by mutableStateOf<List<Categoria>>(emptyList())
         private set
 
     var mensajeOperacion by mutableStateOf<String?>(null)
@@ -130,50 +143,58 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
-    fun confirmarCompra() {
-        val estadoActual = uiState
-        if (estadoActual !is ListaComprasUiState.Success) return
-        val comprados = estadoActual.articulos.filter { it.estado == "Comprado" }
-        if (comprados.isEmpty()) return
-
+    fun cargarCategorias() {
         viewModelScope.launch {
-            var errorOcurrido = false
-            var despensaErrorCount = 0
+            inventarioRepository.obtenerCategorias().onSuccess { lista ->
+                categorias = lista
+            }.onFailure {
+                mensajeOperacion = "No se pudieron cargar las categorías. Revisa tu conexión."
+            }
+        }
+    }
 
-            for (articulo in comprados) {
-                articulo.id?.let { id ->
-                    repository.actualizarEstado(id, "Confirmado").onFailure {
-                        errorOcurrido = true
-                    }
-                }
+    fun confirmarCompra(productos: List<CompraConfirmadaItem>) {
+        if (productos.isEmpty()) return
+        viewModelScope.launch {
+            val ingredientesCreados = mutableListOf<Int>()
 
+            for (producto in productos) {
                 val resultado = inventarioRepository.agregarIngrediente(
-                    nombre = articulo.nombre,
-                    cantidad = articulo.cantidadEsperada?.toFloat() ?: 1f,
-                    unidad = articulo.unidad,
-                    fechaCaducidad = null,
-                    categoriaId = null,
+                    nombre = producto.nombre,
+                    cantidad = producto.cantidad,
+                    unidad = producto.unidad,
+                    fechaCaducidad = producto.fechaCaducidad,
+                    categoriaId = producto.categoriaId,
                     imagenUrl = null
                 )
 
                 resultado.onSuccess { ingredienteId ->
+                    ingredientesCreados.add(ingredienteId)
                     viewModelScope.launch(Dispatchers.IO) {
-                        openFoodFactsRepository.buscarProductoPorNombre(articulo.nombre).onSuccess { producto ->
-                            producto?.imagenUrl?.let { url ->
+                        openFoodFactsRepository.buscarProductoPorNombre(producto.nombre).onSuccess { detalles ->
+                            detalles?.imagenUrl?.let { url ->
                                 inventarioRepository.actualizarImagenIngrediente(ingredienteId, url)
                             }
                         }
                     }
                 }.onFailure {
-                    despensaErrorCount++
+                    ingredientesCreados.forEach { ingredienteId ->
+                        inventarioRepository.eliminarIngrediente(ingredienteId)
+                    }
+                    mensajeOperacion = "Ocurrió un problema al guardar en la despensa. Inténtalo de nuevo."
+                    return@launch
                 }
             }
 
-            when {
-                errorOcurrido -> mensajeOperacion = "Error al confirmar algunas compras."
-                despensaErrorCount > 0 -> mensajeOperacion = "Compra confirmada, pero $despensaErrorCount producto(s) no se pudieron mover a la despensa."
-                else -> mensajeOperacion = "Compra confirmada y productos movidos a la despensa."
+            for (producto in productos) {
+                repository.eliminarArticulo(producto.articuloId).onFailure {
+                    mensajeOperacion = "La despensa se actualizó, pero no se pudo limpiar la lista de compras."
+                    cargarArticulos()
+                    return@launch
+                }
             }
+
+            mensajeOperacion = "Despensa actualizada. Se limpiaron los productos comprados."
             cargarArticulos()
         }
     }
