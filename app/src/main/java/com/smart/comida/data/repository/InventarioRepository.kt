@@ -9,6 +9,11 @@ import io.github.jan.supabase.storage.storage
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
+data class DescuentoIngredienteInventario(
+    val ingrediente: Ingrediente,
+    val cantidadADescontar: Float
+)
+
 class InventarioRepository {
 
     private fun requireUserId(): String {
@@ -277,6 +282,59 @@ class InventarioRepository {
 
             Result.success(Unit)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun descontarIngredientes(descuentos: List<DescuentoIngredienteInventario>): Result<Unit> {
+        if (descuentos.isEmpty()) return Result.success(Unit)
+
+        val userId = try {
+            requireUserId()
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+
+        val ingredientesActualizados = mutableListOf<Ingrediente>()
+
+        return try {
+            descuentos.forEach { descuento ->
+                val ingrediente = descuento.ingrediente
+                val ingredienteId = ingrediente.id
+                    ?: throw IllegalArgumentException("Ingrediente sin ID válido")
+
+                val nuevaCantidad = (ingrediente.cantidad - descuento.cantidadADescontar).coerceAtLeast(0f)
+                val ingredienteActualizado = ingrediente.copy(
+                    cantidad = nuevaCantidad,
+                    userId = userId
+                )
+
+                SupabaseClient.client.postgrest["ingredientes"]
+                    .update(ingredienteActualizado) {
+                        filter {
+                            eq("id", ingredienteId)
+                            eq("user_id", userId)
+                        }
+                    }
+
+                ingredientesActualizados.add(ingrediente)
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            ingredientesActualizados.forEach { ingredienteOriginal ->
+                val ingredienteId = ingredienteOriginal.id ?: return@forEach
+                runCatching {
+                    SupabaseClient.client.postgrest["ingredientes"]
+                        .update(ingredienteOriginal.copy(userId = userId)) {
+                            filter {
+                                eq("id", ingredienteId)
+                                eq("user_id", userId)
+                            }
+                        }
+                }
+            }
+
             Result.failure(e)
         }
     }

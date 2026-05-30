@@ -384,7 +384,10 @@ fun AppNavigation(
                     recetaId = id,
                     onVolver = { navController.popBackStack() },
                     userId = uid,
-                    favoritesRepository = favoritesRepository
+                    favoritesRepository = favoritesRepository,
+                    onPreparacionExitosa = {
+                        despensaViewModelCompartido.cargarIngredientes()
+                    }
                 )
             }
 

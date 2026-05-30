@@ -3,20 +3,18 @@ package com.smart.comida.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smartbite.data.Ingredient
 import com.example.smartbite.data.Instruction
 import com.example.smartbite.data.InstructionStep
 import com.example.smartbite.data.Recipe
 import com.example.smartbite.data.RecipeDetail
 import com.example.smartbite.data.repository.RecipeRepository
+import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.util.TranslationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.smart.comida.data.model.Ingrediente
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
 sealed class RecipeUiState {
     object Idle : RecipeUiState()
@@ -102,7 +100,12 @@ class RecipeViewModel : ViewModel() {
 
                         // Traducimos la lista de ingredientes
                         val ingredientsEs = detailEn.extendedIngredients.map { ing ->
-                            Ingredient(original = TranslationHelper.translateToSpanish(ing.original))
+                            ing.copy(
+                                original = TranslationHelper.translateToSpanish(ing.original),
+                                name = ing.name?.let { nombre ->
+                                    TranslationHelper.translateToSpanish(nombre)
+                                }
+                            )
                         }
 
                         // Traducimos la lista de pasos
@@ -153,7 +156,6 @@ class RecipeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // 1. Filtrar los que tienen fecha de caducidad y ordenarlos por cercanía
                 val hoy = LocalDate.now()
                 val ingredientesClave = ingredientes
                     .filter { !it.fechaCaducidad.isNullOrEmpty() }
@@ -161,14 +163,15 @@ class RecipeViewModel : ViewModel() {
                         val fecha = runCatching { LocalDate.parse(ing.fechaCaducidad) }.getOrNull()
                         if (fecha != null && fecha.isAfter(hoy.minusDays(1))) {
                             ing to fecha
-                        } else null
+                        } else {
+                            null
+                        }
                     }
                     .sortedBy { it.second }
                     .take(3)
                     .map { it.first.nombre }
 
                 if (ingredientesClave.isEmpty()) {
-                    // Si no hay nada por vencer, tomamos 3 ingredientes al azar o los primeros
                     val randomIngs = ingredientes.shuffled().take(3).map { it.nombre }
                     buscarRecomendaciones(randomIngs.joinToString(", "))
                 } else {
@@ -190,7 +193,7 @@ class RecipeViewModel : ViewModel() {
                 onSuccess = { response ->
                     _recommendationsUiState.value = RecommendationsUiState.Success(response.results)
                 },
-                onFailure = { error ->
+                onFailure = {
                     _recommendationsUiState.value = RecommendationsUiState.Error("Error de red")
                 }
             )
