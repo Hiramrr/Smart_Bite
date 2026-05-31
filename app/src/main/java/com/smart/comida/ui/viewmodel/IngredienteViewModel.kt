@@ -119,7 +119,7 @@ class IngredienteViewModel : ViewModel() {
                 resultadoImagen.onSuccess { url ->
                     urlImagenFinal = url 
                 }.onFailure {
-                    uiState = IngredienteUiState.Error("No se pudo subir la imagen del ingrediente", it)
+                    uiState = IngredienteUiState.Error("Error al guardar los datos. No se pudo subir la imagen del ingrediente, por favor intenta de nuevo.", it)
                     return@launch
                 }
             }

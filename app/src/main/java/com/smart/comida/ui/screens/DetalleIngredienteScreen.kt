@@ -220,12 +220,6 @@ fun DetalleIngredienteScreen(
                 }
             }
 
-            Column {
-                Text("Notas", color = colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Sin notas", color = colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            }
-            
             Spacer(modifier = Modifier.height(16.dp))
 
             // Action Buttons Row

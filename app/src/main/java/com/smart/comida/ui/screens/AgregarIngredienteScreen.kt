@@ -59,7 +59,6 @@ fun AgregarIngredienteScreen(
     var cantidad by remember { mutableStateOf(prefilledCantidad ?: "") }
     var unidad by remember { mutableStateOf(prefilledUnidad ?: "") }
     var fechaCaducidad by remember { mutableStateOf("") }
-    var notas by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageUrlFromApi by remember { mutableStateOf<String?>(null) }
 
@@ -385,15 +384,6 @@ fun AgregarIngredienteScreen(
                     )
                 )
             }
-
-            FormTextField(
-                label = "Notas (opcional)",
-                value = notas,
-                onValueChange = { notas = it },
-                placeholder = "Añade notas...",
-                singleLine = false,
-                modifier = Modifier.height(100.dp)
-            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
