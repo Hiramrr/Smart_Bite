@@ -56,6 +56,8 @@ fun DetalleIngredienteScreen(
     val recipeState by recipeViewModel.uiState.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var eliminandoIngrediente by remember { mutableStateOf(false) }
+    var errorEliminacion by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(ingrediente) {
         if (ingrediente != null) {
@@ -67,24 +69,45 @@ fun DetalleIngredienteScreen(
 
     if (showDeleteDialog && ingrediente != null) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+            onDismissRequest = {
+                if (!eliminandoIngrediente) {
+                    showDeleteDialog = false
+                }
+            },
             title = { Text("Eliminar ingrediente") },
             text = { Text("¿Estás seguro de que deseas eliminar ${ingrediente.nombre} permanentemente? Esta acción no se puede deshacer.") },
             confirmButton = {
                 TextButton(
+                    enabled = !eliminandoIngrediente,
                     onClick = {
                         ingrediente.id?.let { id ->
-                            despensaViewModel.eliminarIngrediente(id, ingrediente.imagenUrl)
+                            eliminandoIngrediente = true
+                            errorEliminacion = null
+                            despensaViewModel.eliminarIngrediente(id, ingrediente.imagenUrl) { eliminado ->
+                                eliminandoIngrediente = false
+                                showDeleteDialog = false
+                                if (eliminado) {
+                                    onVolver()
+                                } else {
+                                    errorEliminacion = despensaViewModel.mensajeOperacion
+                                        ?: "Error al eliminar ingrediente. Intenta nuevamente."
+                                }
+                            }
                         }
-                        showDeleteDialog = false
-                        onVolver()
                     }
                 ) {
-                    Text("Eliminar", color = colorScheme.error)
+                    if (eliminandoIngrediente) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Eliminar", color = colorScheme.error)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(
+                    enabled = !eliminandoIngrediente,
+                    onClick = { showDeleteDialog = false }
+                ) {
                     Text("Cancelar")
                 }
             }
@@ -132,6 +155,15 @@ fun DetalleIngredienteScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            errorEliminacion?.let { mensaje ->
+                Text(
+                    text = mensaje,
+                    color = colorScheme.error,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             // Big image placeholder
             Box(
                 modifier = Modifier

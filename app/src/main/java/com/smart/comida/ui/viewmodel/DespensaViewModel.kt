@@ -93,22 +93,20 @@ class DespensaViewModel : ViewModel() {
     }
 
     // Asegúrate de pedir la imagenUrl como parámetro
-    fun eliminarIngrediente(id: Int, imagenUrl: String?) {
+    fun eliminarIngrediente(id: Int, imagenUrl: String?, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
-            // --- NUEVO: BORRAR LA IMAGEN FÍSICA PRIMERO ---
-            if (!imagenUrl.isNullOrEmpty()) {
-                repository.eliminarImagen(imagenUrl)
-            }
-            // ----------------------------------------------
-
-            // Luego, borramos el registro de la base de datos
             val resultado = repository.eliminarIngrediente(id)
 
             resultado.onSuccess {
+                if (!imagenUrl.isNullOrEmpty()) {
+                    repository.eliminarImagen(imagenUrl)
+                }
                 // Volvemos a descargar la lista para que la pantalla se actualice
                 cargarIngredientes()
+                onResult(true)
             }.onFailure {
-                uiState = DespensaUiState.Error("Error al eliminar ingrediente", it)
+                mensajeOperacion = "No se pudo eliminar el ingrediente. Revisa tu conexión a internet e intenta nuevamente."
+                onResult(false)
             }
         }
     }
