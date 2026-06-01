@@ -290,6 +290,7 @@ fun AppNavigation(
                     viewModel = despensaViewModelCompartido,
                     onBackClick = { navController.popBackStack() },
                     onVerDetalleClick = { id -> navController.navigate("detalle_ingrediente/$id") },
+                    onAgregarClick = { navController.navigate("agregar") },
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }

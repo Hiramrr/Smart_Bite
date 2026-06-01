@@ -69,17 +69,21 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
-    fun editarArticulo(id: Int, nombre: String, cantidadInput: String, unidad: String?) {
+    fun editarArticulo(id: Int, nombre: String, cantidadInput: String, unidad: String?): Boolean {
         val nombreTrimmed = nombre.trim()
         if (nombreTrimmed.isBlank()) {
             mensajeOperacion = "El nombre del producto es obligatorio."
-            return
+            return false
         }
 
         val cantidad = cantidadInput.replace(',', '.').toDoubleOrNull()
-        if (cantidadInput.isNotBlank() && (cantidad == null || cantidad <= 0)) {
+        if (cantidadInput.isBlank()) {
+            mensajeOperacion = "Por favor, ingresa la cantidad que deseas comprar."
+            return false
+        }
+        if (cantidad == null || cantidad <= 0) {
             mensajeOperacion = "Por favor, ingresa una cantidad válida mayor a cero."
-            return
+            return false
         }
 
         viewModelScope.launch {
@@ -91,24 +95,25 @@ class ListaComprasViewModel : ViewModel() {
                 mensajeOperacion = "No se pudo actualizar el producto. Verifica tu conexión."
             }
         }
+        return true
     }
 
-    fun agregarArticulo(nombre: String, cantidadInput: String, unidad: String?) {
+    fun agregarArticulo(nombre: String, cantidadInput: String, unidad: String?): Boolean {
         val nombreTrimmed = nombre.trim()
         if (nombreTrimmed.isBlank()) {
             mensajeOperacion = "El nombre del producto es obligatorio."
-            return
+            return false
         }
 
         val cantidad = cantidadInput.replace(',', '.').toDoubleOrNull()
         if (cantidadInput.isBlank()) {
             mensajeOperacion = "Por favor, ingresa la cantidad que deseas comprar."
-            return
+            return false
         }
         
         if (cantidad == null || cantidad <= 0) {
             mensajeOperacion = "La cantidad debe ser un número válido mayor a cero."
-            return
+            return false
         }
 
         viewModelScope.launch {
@@ -120,6 +125,7 @@ class ListaComprasViewModel : ViewModel() {
                 mensajeOperacion = "Error al guardar el producto. Intenta nuevamente."
             }
         }
+        return true
     }
 
     fun eliminarArticulo(id: Int) {
@@ -266,15 +272,15 @@ class ListaComprasViewModel : ViewModel() {
                     )
                 )
             } else if (cantidadReceta != null && unidadReceta != null) {
-                val coincidenciasMismaUnidad = ingredientesCoincidentes.filter {
-                    it.unidad?.lowercase()?.trim() == unidadReceta
+                val unidadComparableReceta = unidadComparable(unidadReceta)
+                val coincidenciasCompatibles = ingredientesCoincidentes.filter {
+                    unidadComparable(it.unidad).tipo == unidadComparableReceta.tipo
                 }
 
-                if (coincidenciasMismaUnidad.isEmpty()) {
-                    continue
+                val cantidadTotalEnDespensa = coincidenciasCompatibles.sumOf {
+                    val unidadInventario = unidadComparable(it.unidad)
+                    it.cantidad.toDouble() * unidadInventario.factorBase / unidadComparableReceta.factorBase
                 }
-
-                val cantidadTotalEnDespensa = coincidenciasMismaUnidad.sumOf { it.cantidad.toDouble() }
 
                 if (cantidadTotalEnDespensa < cantidadReceta) {
                     faltantes.add(
@@ -374,6 +380,18 @@ class ListaComprasViewModel : ViewModel() {
         return cantidadStr.toDoubleOrNull()
     }
 
+    private fun unidadComparable(unidad: String?): UnidadComparable {
+        val normalizada = unidad?.lowercase()?.trim().orEmpty()
+        return when (normalizada) {
+            "kg", "kilogramo", "kilogramos" -> UnidadComparable("masa", 1000.0)
+            "g", "gr", "gramo", "gramos" -> UnidadComparable("masa", 1.0)
+            "l", "litro", "litros" -> UnidadComparable("volumen", 1000.0)
+            "ml", "mililitro", "mililitros" -> UnidadComparable("volumen", 1.0)
+            "pieza", "piezas", "unidad", "unidades" -> UnidadComparable("piezas", 1.0)
+            else -> UnidadComparable("literal:$normalizada", 1.0)
+        }
+    }
+
     fun agregarFaltantesALista(ingredientesFaltantes: List<IngredienteFaltante>) {
         agregarDesdeRecetaState = AgregarDesdeRecetaState.Adding
         viewModelScope.launch {
@@ -410,6 +428,11 @@ class ListaComprasViewModel : ViewModel() {
         agregarDesdeRecetaState = AgregarDesdeRecetaState.Idle
     }
 }
+
+private data class UnidadComparable(
+    val tipo: String,
+    val factorBase: Double
+)
 
 sealed class ListaComprasUiState {
     object Loading : ListaComprasUiState()

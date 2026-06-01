@@ -1,6 +1,7 @@
 package com.smart.comida.data.repository
 
 import com.smart.comida.data.model.Categoria
+import com.smart.comida.data.model.Consumo
 import com.smart.comida.data.model.Desperdicio
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.network.SupabaseClient
@@ -8,6 +9,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
 data class DescuentoIngredienteInventario(
     val ingrediente: Ingrediente,
@@ -135,6 +137,16 @@ class InventarioRepository {
     suspend fun registrarComoDesperdicio(ingrediente: Ingrediente, cantidadDesperdicio: Float): Result<Unit> {
         val ingredienteId = ingrediente.id
             ?: return Result.failure(IllegalArgumentException("Ingrediente sin ID válido"))
+        if (!puedeRegistrarseComoDesperdicio(ingrediente.fechaCaducidad)) {
+            return Result.failure(
+                IllegalArgumentException("Solo puedes desechar ingredientes caducados o que vencen en los próximos 7 días")
+            )
+        }
+        if (abs(cantidadDesperdicio - ingrediente.cantidad) > 0.0001f) {
+            return Result.failure(
+                IllegalArgumentException("Debes registrar como desperdicio la cantidad completa del ingrediente")
+            )
+        }
         val userId = requireUserId()
         val fechaDesecho = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
@@ -258,6 +270,31 @@ class InventarioRepository {
         }
     }
 
+    suspend fun obtenerConsumosPorMes(mes: Int, anio: Int): Result<List<Consumo>> {
+        return try {
+            val userId = requireUserId()
+            val inicioMes = String.format("%04d-%02d-01T00:00:00+00:00", anio, mes)
+            val finMes = if (mes == 12) {
+                String.format("%04d-01-01T00:00:00+00:00", anio + 1)
+            } else {
+                String.format("%04d-%02d-01T00:00:00+00:00", anio, mes + 1)
+            }
+
+            val lista = SupabaseClient.client.postgrest["historial_consumo"]
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                        gte("fecha_consumo", inicioMes)
+                        lt("fecha_consumo", finMes)
+                    }
+                }
+                .decodeList<Consumo>()
+            Result.success(lista)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun actualizarIngrediente(
         id: Int, nombre: String, cantidad: Float,
         unidad: String?, fechaCaducidad: String?, categoriaId: Int?,
@@ -296,6 +333,7 @@ class InventarioRepository {
         }
 
         val ingredientesActualizados = mutableListOf<Ingrediente>()
+        val fechaConsumo = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         return try {
             descuentos.forEach { descuento ->
@@ -320,6 +358,11 @@ class InventarioRepository {
                 ingredientesActualizados.add(ingrediente)
             }
 
+            val consumos = descuentos.map { descuento ->
+                crearRegistroConsumo(descuento.ingrediente, descuento.cantidadADescontar, userId, fechaConsumo)
+            }
+            SupabaseClient.client.postgrest["historial_consumo"].insert(consumos)
+
             Result.success(Unit)
         } catch (e: Exception) {
             ingredientesActualizados.forEach { ingredienteOriginal ->
@@ -337,6 +380,81 @@ class InventarioRepository {
 
             Result.failure(e)
         }
+    }
+
+    suspend fun descontarIngrediente(ingrediente: Ingrediente, cantidadADescontar: Float): Result<Unit> {
+        val ingredienteId = ingrediente.id
+            ?: return Result.failure(IllegalArgumentException("Ingrediente sin ID válido"))
+        if (cantidadADescontar <= 0f || cantidadADescontar > ingrediente.cantidad) {
+            return Result.failure(IllegalArgumentException("Cantidad de consumo inválida"))
+        }
+
+        val userId = try {
+            requireUserId()
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+        val ingredienteActualizado = ingrediente.copy(
+            cantidad = ingrediente.cantidad - cantidadADescontar,
+            userId = userId
+        )
+        val consumo = crearRegistroConsumo(
+            ingrediente = ingrediente,
+            cantidad = cantidadADescontar,
+            userId = userId,
+            fechaConsumo = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        )
+
+        return try {
+            SupabaseClient.client.postgrest["ingredientes"]
+                .update(ingredienteActualizado) {
+                    filter {
+                        eq("id", ingredienteId)
+                        eq("user_id", userId)
+                    }
+                }
+            try {
+                SupabaseClient.client.postgrest["historial_consumo"].insert(consumo)
+            } catch (e: Exception) {
+                runCatching {
+                    SupabaseClient.client.postgrest["ingredientes"]
+                        .update(ingrediente.copy(userId = userId)) {
+                            filter {
+                                eq("id", ingredienteId)
+                                eq("user_id", userId)
+                            }
+                        }
+                }
+                return Result.failure(e)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun crearRegistroConsumo(
+        ingrediente: Ingrediente,
+        cantidad: Float,
+        userId: String,
+        fechaConsumo: String
+    ): Consumo {
+        return Consumo(
+            nombre = ingrediente.nombre,
+            cantidad = cantidad,
+            unidad = ingrediente.unidad,
+            categoriaId = ingrediente.categoriaId,
+            fechaConsumo = fechaConsumo,
+            userId = userId
+        )
+    }
+
+    private fun puedeRegistrarseComoDesperdicio(fechaCaducidad: String?): Boolean {
+        if (fechaCaducidad.isNullOrBlank()) return false
+        return runCatching {
+            val fecha = java.time.LocalDate.parse(fechaCaducidad)
+            !fecha.isAfter(java.time.LocalDate.now().plusDays(7))
+        }.getOrDefault(false)
     }
 
     suspend fun subirImagen(byteArray: ByteArray, nombreArchivo: String): Result<String> {

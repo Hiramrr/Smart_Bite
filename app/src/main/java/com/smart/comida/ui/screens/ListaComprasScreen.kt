@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -68,6 +69,7 @@ fun ListaComprasScreen(
     var selectedTab by remember { mutableStateOf(0) }
     var mostrarDialogoNuevo by remember { mutableStateOf(false) }
     var articuloEditando by remember { mutableStateOf<ArticuloCompra?>(null) }
+    var articuloAEliminar by remember { mutableStateOf<ArticuloCompra?>(null) }
     var productosAConfirmar by remember { mutableStateOf<List<ConfirmacionCompraForm>>(emptyList()) }
     var categoriaExpandidaIndex by remember { mutableStateOf<Int?>(null) }
     var fechaActivaIndex by remember { mutableStateOf<Int?>(null) }
@@ -86,6 +88,29 @@ fun ListaComprasScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
+
+    articuloAEliminar?.let { articulo ->
+        AlertDialog(
+            onDismissRequest = { articuloAEliminar = null },
+            title = { Text("Eliminar artículo") },
+            text = { Text("¿Deseas quitar ${articulo.nombre} de la lista de compras?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        articulo.id?.let(viewModel::eliminarArticulo)
+                        articuloAEliminar = null
+                    }
+                ) {
+                    Text("Eliminar", color = colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { articuloAEliminar = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     val edit = articuloEditando
     if (mostrarDialogoNuevo || edit != null) {
@@ -177,11 +202,15 @@ fun ListaComprasScreen(
                         if (nombre.isBlank()) {
                             errorNombre = true
                         } else if (esNuevo) {
-                            viewModel.agregarArticulo(nombre, cantidad, unidadSeleccionada)
-                            mostrarDialogoNuevo = false
+                            if (viewModel.agregarArticulo(nombre, cantidad, unidadSeleccionada)) {
+                                mostrarDialogoNuevo = false
+                            }
                         } else {
-                            edit?.id?.let { viewModel.editarArticulo(it, nombre, cantidad, unidadSeleccionada) }
-                            articuloEditando = null
+                            edit?.id?.let {
+                                if (viewModel.editarArticulo(it, nombre, cantidad, unidadSeleccionada)) {
+                                    articuloEditando = null
+                                }
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -505,7 +534,7 @@ fun ListaComprasScreen(
                                         when (value) {
                                             SwipeToDismissBoxValue.EndToStart -> {
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                articulo.id?.let { viewModel.eliminarArticulo(it) }
+                                                articuloAEliminar = articulo
                                                 false
                                             }
                                             SwipeToDismissBoxValue.StartToEnd -> {
@@ -581,6 +610,21 @@ fun ListaComprasScreen(
                                                     val displayCantidad = if (articulo.unidad != null) "$it ${articulo.unidad}" else it.toString()
                                                     Text(displayCantidad, fontSize = 12.sp, color = colorScheme.onSurfaceVariant, textDecoration = textDecoration)
                                                 }
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    articuloEditando = articulo
+                                                    dialogKey++
+                                                }
+                                            ) {
+                                                Icon(Icons.Default.Edit, contentDescription = "Editar artículo")
+                                            }
+                                            IconButton(onClick = { articuloAEliminar = articulo }) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "Eliminar artículo",
+                                                    tint = colorScheme.error
+                                                )
                                             }
                                         }
                                     }

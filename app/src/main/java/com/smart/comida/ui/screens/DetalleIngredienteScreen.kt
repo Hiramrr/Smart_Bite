@@ -271,12 +271,14 @@ fun DetalleIngredienteScreen(
                     bgColor = LightPurple,
                     onClick = { ingrediente.id?.let { onDescontarClick(it) } }
                 )
-                ActionButton(
-                    icon = { Icon(painterResource(id = R.drawable.ic_desperdicio), contentDescription = "Desperdicio", tint = OrangeExpiring) },
-                    label = "Desperdicio",
-                    bgColor = LightOrange,
-                    onClick = { ingrediente.id?.let { onRegistrarDesperdicioClick(it) } }
-                )
+                if (puedeRegistrarComoDesperdicio(ingrediente.fechaCaducidad)) {
+                    ActionButton(
+                        icon = { Icon(painterResource(id = R.drawable.ic_desperdicio), contentDescription = "Desperdicio", tint = OrangeExpiring) },
+                        label = "Desperdicio",
+                        bgColor = LightOrange,
+                        onClick = { ingrediente.id?.let { onRegistrarDesperdicioClick(it) } }
+                    )
+                }
                 ActionButton(
                     icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = RedExpiring) },
                     label = "Eliminar",
@@ -355,4 +357,12 @@ fun ActionButton(icon: @Composable () -> Unit, label: String, bgColor: Color, on
         Spacer(modifier = Modifier.height(8.dp))
         Text(label, fontSize = 12.sp, color = colorScheme.onBackground, fontWeight = FontWeight.Medium)
     }
+}
+
+private fun puedeRegistrarComoDesperdicio(fechaCaducidad: String?): Boolean {
+    if (fechaCaducidad.isNullOrBlank()) return false
+    return runCatching {
+        val fecha = java.time.LocalDate.parse(fechaCaducidad)
+        !fecha.isAfter(java.time.LocalDate.now().plusDays(7))
+    }.getOrDefault(false)
 }

@@ -15,34 +15,22 @@ class ListaComprasRepository {
     }
 
     suspend fun agregarArticulos(articulos: List<ArticuloCompra>): Result<Unit> {
+        if (articulos.isEmpty()) return Result.success(Unit)
         return try {
             val userId = requireUserId()
-            var errorCount = 0
-            var lastError: Exception? = null
-
-            for (articulo in articulos) {
-                try {
-                    val nuevoArticulo = ArticuloCompra(
-                        nombre = articulo.nombre,
-                        cantidadEsperada = articulo.cantidadEsperada,
-                        unidad = articulo.unidad,
-                        estado = articulo.estado ?: "Pendiente",
-                        userId = userId
-                    )
-
-                    SupabaseClient.client.postgrest["lista_compras"]
-                        .insert(nuevoArticulo)
-                } catch (e: Exception) {
-                    errorCount++
-                    lastError = e
-                }
+            val nuevosArticulos = articulos.map { articulo ->
+                ArticuloCompra(
+                    nombre = articulo.nombre,
+                    cantidadEsperada = articulo.cantidadEsperada,
+                    unidad = articulo.unidad,
+                    estado = articulo.estado ?: "Pendiente",
+                    userId = userId
+                )
             }
 
-            if (errorCount > 0 && errorCount == articulos.size) {
-                Result.failure(lastError ?: Exception("Error al insertar artículos"))
-            } else {
-                Result.success(Unit)
-            }
+            SupabaseClient.client.postgrest["lista_compras"]
+                .insert(nuevosArticulos)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

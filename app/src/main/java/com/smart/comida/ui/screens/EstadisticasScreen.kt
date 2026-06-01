@@ -145,6 +145,14 @@ fun EstadisticasScreen(
                             modifier = Modifier.padding(horizontal = 32.dp)
                         )
                     }
+
+                    ComparisonChart(
+                        totalConsumo = 0,
+                        totalDesperdicio = 0,
+                        cantidadConsumo = 0f,
+                        cantidadDesperdicio = 0f,
+                        colorScheme = colorScheme
+                    )
                 }
             }
 

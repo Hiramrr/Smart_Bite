@@ -30,26 +30,18 @@ class RegistrarDesperdicioViewModel : ViewModel() {
         }
     }
 
-    fun registrarDesperdicio(cantidadStr: String) {
+    fun registrarDesperdicio() {
         val ing = ingrediente ?: return
-
-        val cantidadDesperdicio = cantidadStr.toFloatOrNull()
-        if (cantidadDesperdicio == null || cantidadDesperdicio <= 0) {
-            uiState = RegistrarDesperdicioUiState.Error("Ingresa una cantidad válida mayor a cero.")
-            return
-        }
-
-        if (cantidadDesperdicio > ing.cantidad) {
-            uiState = RegistrarDesperdicioUiState.Error("No puedes registrar más de lo que tienes en stock (${ing.cantidad} ${ing.unidad}).")
-            return
-        }
 
         uiState = RegistrarDesperdicioUiState.Loading
         viewModelScope.launch {
-            repository.registrarComoDesperdicio(ing, cantidadDesperdicio).onSuccess {
+            repository.registrarComoDesperdicio(ing, ing.cantidad).onSuccess {
                 uiState = RegistrarDesperdicioUiState.Success
             }.onFailure {
-                uiState = RegistrarDesperdicioUiState.Error("No se pudo registrar el desperdicio", it)
+                uiState = RegistrarDesperdicioUiState.Error(
+                    it.message ?: "No se pudo registrar el desperdicio",
+                    it
+                )
             }
         }
     }

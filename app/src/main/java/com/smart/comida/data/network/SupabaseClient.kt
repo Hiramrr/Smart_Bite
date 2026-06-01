@@ -1,5 +1,6 @@
 package com.smart.comida.data.network
 
+import com.smart.comida.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
@@ -16,10 +17,9 @@ import kotlinx.serialization.json.Json
  */
 object SupabaseClient {
 
-    // TODO: En una refactorización futura, mover estas constantes a BuildConfig.
-    private const val SUPABASE_URL = "https://xjhhrwaopisbemoebqzz.supabase.co"
-    private const val SUPABASE_ANON_KEY = "sb_publishable_hQ8TECVf8BYV3ixteCou4Q_zFwjKYx7"
-    private const val WEB_CLIENT_ID = "218825230713-bfg3dbccja0doumvbl19i8hngcd1uejt.apps.googleusercontent.com"
+    private val SUPABASE_URL = BuildConfig.SUPABASE_URL
+    private val SUPABASE_ANON_KEY = BuildConfig.SUPABASE_ANON_KEY
+    private val WEB_CLIENT_ID = BuildConfig.WEB_CLIENT_ID
 
     var currentUserId: String? = null
 

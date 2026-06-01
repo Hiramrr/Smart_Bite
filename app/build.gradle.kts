@@ -1,9 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { this.load(it) }
+    }
+}
+val supabaseUrlProp = localProperties.getProperty("SUPABASE_URL") ?: "https://xjhhrwaopisbemoebqzz.supabase.co"
+val supabaseKeyProp = localProperties.getProperty("SUPABASE_ANON_KEY") ?: "sb_publishable_hQ8TECVf8BYV3ixteCou4Q_zFwjKYx7"
+val webClientIdProp = localProperties.getProperty("WEB_CLIENT_ID") ?: "218825230713-bfg3dbccja0doumvbl19i8hngcd1uejt.apps.googleusercontent.com"
 
 android {
     namespace = "com.smart.comida"
@@ -33,13 +45,19 @@ android {
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrlProp\"")
+            buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseKeyProp\"")
+            buildConfigField("String", "WEB_CLIENT_ID", "\"$webClientIdProp\"")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrlProp\"")
+            buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseKeyProp\"")
+            buildConfigField("String", "WEB_CLIENT_ID", "\"$webClientIdProp\"")
         }
     }
     compileOptions {
@@ -48,6 +66,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

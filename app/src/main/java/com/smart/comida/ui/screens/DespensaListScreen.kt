@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.ui.components.EmptyState
+import com.smart.comida.ui.components.ErrorState
 import com.smart.comida.ui.components.ShimmerIngredientsList
 import com.smart.comida.ui.theme.*
 import com.smart.comida.ui.viewmodel.DespensaUiState
@@ -46,6 +47,7 @@ fun DespensaListScreen(
     viewModel: DespensaViewModel,
     onBackClick: () -> Unit,
     onVerDetalleClick: (Int) -> Unit,
+    onAgregarClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     val uiState = viewModel.uiState
@@ -102,6 +104,18 @@ fun DespensaListScreen(
                                 },
                                 onClick = {
                                     viewModel.seleccionarOrden(OrdenDespensa.NOMBRE)
+                                    expandirOrden = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Categoría") },
+                                leadingIcon = {
+                                    if (viewModel.ordenSeleccionado == OrdenDespensa.CATEGORIA) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.seleccionarOrden(OrdenDespensa.CATEGORIA)
                                     expandirOrden = false
                                 }
                             )
@@ -281,9 +295,10 @@ fun DespensaListScreen(
                     }
                 }
                 is DespensaUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text(uiState.message, color = colorScheme.error)
-                    }
+                    ErrorState(
+                        message = uiState.message,
+                        onRetry = viewModel::cargarIngredientes
+                    )
                 }
                 is DespensaUiState.Success -> {
                     if (uiState.ingredientes.isEmpty()) {
@@ -298,8 +313,8 @@ fun DespensaListScreen(
                             } else {
                                 "Agrega productos a tu despensa para empezar."
                             },
-                            actionLabel = if (hayFiltrosActivos) "Limpiar filtros" else null,
-                            onActionClick = if (hayFiltrosActivos) viewModel::limpiarFiltros else null
+                            actionLabel = if (hayFiltrosActivos) "Limpiar filtros" else "Agregar ingrediente",
+                            onActionClick = if (hayFiltrosActivos) viewModel::limpiarFiltros else onAgregarClick
                         )
                     } else {
                         LazyColumn(
@@ -398,6 +413,13 @@ fun IngredienteListItem(ingrediente: Ingrediente, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(ingrediente.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colorScheme.onSurface)
             Text("${ingrediente.cantidad} ${ingrediente.unidad ?: ""}", fontSize = 14.sp, color = colorScheme.onSurfaceVariant)
+            ingrediente.fechaCaducidad?.let { fecha ->
+                val fechaVisible = runCatching {
+                    java.time.LocalDate.parse(fecha)
+                        .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                }.getOrDefault(fecha)
+                Text("Caduca: $fechaVisible", fontSize = 12.sp, color = colorScheme.onSurfaceVariant)
+            }
         }
 
         // Cálculo de días reales

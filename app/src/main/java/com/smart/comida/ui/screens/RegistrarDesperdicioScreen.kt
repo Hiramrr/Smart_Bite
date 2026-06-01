@@ -3,7 +3,6 @@ package com.smart.comida.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -15,7 +14,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
@@ -35,8 +33,7 @@ fun RegistrarDesperdicioScreen(
     onRegistroExitoso: () -> Unit,
     viewModel: RegistrarDesperdicioViewModel = viewModel()
 ) {
-    var cantidadDesperdicio by remember { mutableStateOf("") }
-
+    var mostrarConfirmacion by remember { mutableStateOf(false) }
     val ing = viewModel.ingrediente
 
     LaunchedEffect(ingredienteId) {
@@ -52,6 +49,31 @@ fun RegistrarDesperdicioScreen(
 
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
+
+    if (mostrarConfirmacion && ing != null) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmacion = false },
+            title = { Text("Confirmar desperdicio") },
+            text = {
+                Text("¿Deseas desechar ${ing.nombre}? Se quitará del inventario activo y quedará registrado en tus estadísticas.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacion = false
+                        viewModel.registrarDesperdicio()
+                    }
+                ) {
+                    Text("Desechar", color = colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmacion = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = colorScheme.background,
@@ -83,7 +105,7 @@ fun RegistrarDesperdicioScreen(
                     )
                 }
                 Button(
-                    onClick = { viewModel.registrarDesperdicio(cantidadDesperdicio) },
+                    onClick = { mostrarConfirmacion = true },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = OrangeExpiring),
                     shape = RoundedCornerShape(16.dp),
@@ -140,40 +162,12 @@ fun RegistrarDesperdicioScreen(
 
                 HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.5f))
 
-                Text("¿Cuánta cantidad se desperdició?", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = colorScheme.onBackground)
-
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = cantidadDesperdicio,
-                        onValueChange = { cantidadDesperdicio = it },
-                        placeholder = { Text("0.0") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1.2f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = colorScheme.outline,
-                            focusedBorderColor = OrangeExpiring,
-                            unfocusedContainerColor = colorScheme.surface,
-                            focusedContainerColor = colorScheme.surface
-                        )
-                    )
-
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = ing.unidad ?: "Piezas",
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = colorScheme.outline,
-                                focusedBorderColor = OrangeExpiring,
-                                unfocusedContainerColor = colorScheme.surface,
-                                focusedContainerColor = colorScheme.surface
-                            )
-                        )
-                    }
-                }
+                Text(
+                    "Se desechará la cantidad completa: ${ing.cantidad} ${ing.unidad ?: "piezas"}.",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onBackground
+                )
 
                 Card(
                     colors = CardDefaults.cardColors(containerColor = LightOrange.copy(alpha = 0.3f)),
@@ -186,7 +180,7 @@ fun RegistrarDesperdicioScreen(
                         Icon(painterResource(id = R.drawable.ic_desperdicio), contentDescription = null, tint = OrangeExpiring)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Se registrará en el historial de desperdicio y se descontará del inventario.",
+                            text = "Solo se permite desechar un alimento caducado o próximo a caducar. Se registrará en el historial y se quitará del inventario activo.",
                             fontSize = 13.sp,
                             color = OrangeExpiring
                         )

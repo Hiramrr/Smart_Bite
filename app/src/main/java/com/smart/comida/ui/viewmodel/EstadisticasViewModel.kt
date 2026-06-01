@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smart.comida.data.model.Consumo
 import com.smart.comida.data.model.Desperdicio
-import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -45,28 +45,19 @@ class EstadisticasViewModel : ViewModel() {
     fun cargarEstadisticas() {
         uiState = EstadisticasUiState.Loading
         viewModelScope.launch {
-            val ahora = LocalDate.now()
-            val esMesActual = anio == ahora.year && mes == ahora.monthValue
-
-            // Solo incluimos el inventario actual como "consumo" si estamos viendo el mes actual.
-            // Para meses pasados, no tenemos historial de consumo, solo de desperdicio.
-            val ingredientesResult = if (esMesActual) {
-                repository.obtenerIngredientes()
-            } else {
-                Result.success(emptyList())
-            }
+            val consumosResult = repository.obtenerConsumosPorMes(mes, anio)
             val desperdiciosResult = repository.obtenerDesperdiciosPorMes(mes, anio)
 
-            if (ingredientesResult.isFailure || desperdiciosResult.isFailure) {
+            if (consumosResult.isFailure || desperdiciosResult.isFailure) {
                 uiState = EstadisticasUiState.Error("Error al cargar las estadísticas")
                 return@launch
             }
 
-            val ingredientes = ingredientesResult.getOrDefault(emptyList())
+            val consumos = consumosResult.getOrDefault(emptyList())
             val desperdicios = desperdiciosResult.getOrDefault(emptyList())
 
-            val totalConsumo = ingredientes.size
-            val cantidadConsumo = ingredientes.sumOf { it.cantidad.toDouble() }.toFloat()
+            val totalConsumo = consumos.size
+            val cantidadConsumo = consumos.sumOf { it.cantidad.toDouble() }.toFloat()
 
             val totalDesperdicio = desperdicios.size
             val cantidadDesperdicio = desperdicios.sumOf { it.cantidad.toDouble() }.toFloat()
@@ -79,7 +70,7 @@ class EstadisticasViewModel : ViewModel() {
                     totalDesperdicio = totalDesperdicio,
                     cantidadConsumo = cantidadConsumo,
                     cantidadDesperdicio = cantidadDesperdicio,
-                    ingredientes = ingredientes,
+                    consumos = consumos,
                     desperdicios = desperdicios
                 )
             }
@@ -115,7 +106,7 @@ sealed class EstadisticasUiState {
         val totalDesperdicio: Int,
         val cantidadConsumo: Float,
         val cantidadDesperdicio: Float,
-        val ingredientes: List<Ingrediente>,
+        val consumos: List<Consumo>,
         val desperdicios: List<Desperdicio>
     ) : EstadisticasUiState()
     object Empty : EstadisticasUiState()

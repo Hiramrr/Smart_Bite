@@ -47,6 +47,7 @@ class DespensaViewModel : ViewModel() {
     enum class OrdenDespensa {
         CADUCIDAD,
         NOMBRE,
+        CATEGORIA,
         MENOR_STOCK
     }
 
@@ -133,30 +134,12 @@ class DespensaViewModel : ViewModel() {
             mensajeOperacion = "No se pudo usar el ingrediente."
             return
         }
-        val nuevaCantidad = ingrediente.cantidad - 1f
         viewModelScope.launch {
-            if (nuevaCantidad <= 0f) {
-                repository.registrarComoDesperdicio(ingrediente, ingrediente.cantidad).onSuccess {
-                    mensajeOperacion = "Usaste ${ingrediente.nombre}."
-                    cargarIngredientes()
-                }.onFailure {
-                    mensajeOperacion = "Error: ${it.message}"
-                }
-            } else {
-                repository.actualizarIngrediente(
-                    id = ingrediente.id,
-                    nombre = ingrediente.nombre,
-                    cantidad = nuevaCantidad,
-                    unidad = ingrediente.unidad,
-                    fechaCaducidad = ingrediente.fechaCaducidad,
-                    categoriaId = ingrediente.categoriaId,
-                    imagenUrl = ingrediente.imagenUrl
-                ).onSuccess {
-                    mensajeOperacion = "Usaste 1 ${ingrediente.unidad ?: "unidad"} de ${ingrediente.nombre}."
-                    cargarIngredientes()
-                }.onFailure {
-                    mensajeOperacion = "Error al descontar: ${it.message}"
-                }
+            repository.descontarIngrediente(ingrediente, 1f).onSuccess {
+                mensajeOperacion = "Usaste 1 ${ingrediente.unidad ?: "unidad"} de ${ingrediente.nombre}."
+                cargarIngredientes()
+            }.onFailure {
+                mensajeOperacion = "Error al descontar: ${it.message}"
             }
         }
     }
@@ -254,6 +237,13 @@ class DespensaViewModel : ViewModel() {
                 }.thenBy { it.nombre.lowercase() }
             )
             OrdenDespensa.NOMBRE -> listaFiltrada.sortedBy { it.nombre.lowercase() }
+            OrdenDespensa.CATEGORIA -> {
+                val categoriasPorId = categorias.associate { it.id to it.nombre.lowercase() }
+                listaFiltrada.sortedWith(
+                    compareBy<Ingrediente> { categoriasPorId[it.categoriaId] ?: "zzzz" }
+                        .thenBy { it.nombre.lowercase() }
+                )
+            }
             OrdenDespensa.MENOR_STOCK -> listaFiltrada.sortedWith(
                 compareBy<Ingrediente> { it.cantidad }.thenBy { it.nombre.lowercase() }
             )

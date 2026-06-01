@@ -59,19 +59,9 @@ class DescontarViewModel : ViewModel() {
             return
         }
 
-        val nuevaCantidad = ing.cantidad - cantidadProcesada
-        
         uiState = DescontarUiState.Loading
         viewModelScope.launch {
-            repository.actualizarIngrediente(
-                id = ing.id!!,
-                nombre = ing.nombre,
-                cantidad = nuevaCantidad,
-                unidad = ing.unidad,
-                fechaCaducidad = ing.fechaCaducidad,
-                categoriaId = ing.categoriaId,
-                imagenUrl = ing.imagenUrl
-            ).onSuccess {
+            repository.descontarIngrediente(ing, cantidadProcesada).onSuccess {
                 uiState = DescontarUiState.Success
             }.onFailure {
                 uiState = DescontarUiState.Error("No se pudo actualizar el inventario", it)
