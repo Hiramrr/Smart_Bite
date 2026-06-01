@@ -6,9 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.smart.comida.data.local.entity.FavoriteRecipeEntity
 import com.smart.comida.domain.repository.FavoritesRepository
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+sealed class FavoriteActionUiState {
+    object Idle : FavoriteActionUiState()
+    data class Message(val text: String) : FavoriteActionUiState()
+}
 
 class RecipeDetailViewModel(
     private val repository: FavoritesRepository,
@@ -23,10 +30,31 @@ class RecipeDetailViewModel(
             initialValue = false
         )
 
-    fun onToggleFavorite(recipe: FavoriteRecipeEntity) {
+    private val _actionUiState = MutableStateFlow<FavoriteActionUiState>(FavoriteActionUiState.Idle)
+    val actionUiState: StateFlow<FavoriteActionUiState> = _actionUiState.asStateFlow()
+
+    suspend fun getFavoriteRecipe(): FavoriteRecipeEntity? =
+        repository.getFavorite(userId, recipeId)
+
+    fun saveFavorite(recipe: FavoriteRecipeEntity) {
         viewModelScope.launch {
-            repository.toggleFavorite(recipe, userId)
+            runCatching {
+                repository.saveToFavorites(recipe, userId)
+            }.onSuccess { saved ->
+                _actionUiState.value = FavoriteActionUiState.Message(
+                    if (saved) "Receta guardada en favoritos."
+                    else "Esta receta ya está guardada en favoritos."
+                )
+            }.onFailure {
+                _actionUiState.value = FavoriteActionUiState.Message(
+                    "No se pudo guardar la receta. Inténtalo de nuevo."
+                )
+            }
         }
+    }
+
+    fun clearActionMessage() {
+        _actionUiState.value = FavoriteActionUiState.Idle
     }
 }
 

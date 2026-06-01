@@ -16,6 +16,9 @@ interface FavoriteRecipeDao {
     @Query("SELECT EXISTS(SELECT 1 FROM favorite_recipes WHERE externalRecipeId = :recipeId AND userId = :userId)")
     fun isFavorite(recipeId: Int, userId: String): Flow<Boolean>
 
+    @Query("SELECT * FROM favorite_recipes WHERE externalRecipeId = :recipeId AND userId = :userId LIMIT 1")
+    fun getFavorite(recipeId: Int, userId: String): FavoriteRecipeEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertFavorite(recipe: FavoriteRecipeEntity): Long
 

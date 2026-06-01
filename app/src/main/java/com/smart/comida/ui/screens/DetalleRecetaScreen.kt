@@ -27,6 +27,7 @@ import com.smart.comida.domain.repository.FavoritesRepository
 import com.smart.comida.presentation.components.FavoriteToggleButton
 import com.smart.comida.presentation.viewmodel.RecipeDetailViewModel
 import com.smart.comida.presentation.viewmodel.RecipeDetailViewModelFactory
+import com.smart.comida.presentation.viewmodel.FavoriteActionUiState
 import com.smart.comida.ui.viewmodel.AgregarDesdeRecetaState
 import com.smart.comida.ui.viewmodel.IngredienteFaltante
 import com.smart.comida.ui.viewmodel.ListaComprasViewModel
@@ -58,12 +59,21 @@ fun DetalleRecetaScreen(
     )
 
     val isFavorite by favoriteViewModel.isFavorite.collectAsState()
+    val favoriteActionState by favoriteViewModel.actionUiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(recetaId) {
-        recipeViewModel.getRecipeDetail(recetaId)
+        val favoriteRecipe = favoriteViewModel.getFavoriteRecipe()
+        recipeViewModel.getRecipeDetail(recetaId, favoriteRecipe?.recipeDataJson)
         prepararRecetaViewModel.resetState()
+    }
+
+    LaunchedEffect(favoriteActionState) {
+        if (favoriteActionState is FavoriteActionUiState.Message) {
+            snackbarHostState.showSnackbar((favoriteActionState as FavoriteActionUiState.Message).text)
+            favoriteViewModel.clearActionMessage()
+        }
     }
 
     val agregarEstado by remember { derivedStateOf { listaComprasViewModel.agregarDesdeRecetaState } }
@@ -226,7 +236,7 @@ fun DetalleRecetaScreen(
                                     recipeDataJson = recipeJson,
                                     userId = userId
                                 )
-                                favoriteViewModel.onToggleFavorite(entity)
+                                favoriteViewModel.saveFavorite(entity)
                             }
                         )
                     }
@@ -310,6 +320,14 @@ fun DetalleRecetaScreen(
                         }
 
                         item {
+                            Text("Información nutricional", style = MaterialTheme.typography.titleLarge)
+                        }
+
+                        item {
+                            NutritionSummary(receta = receta)
+                        }
+
+                        item {
                             Text("Pasos", style = MaterialTheme.typography.titleLarge)
                         }
 
@@ -320,6 +338,45 @@ fun DetalleRecetaScreen(
                     }
                 }
                 else -> {}
+            }
+        }
+    }
+}
+
+@Composable
+private fun NutritionSummary(receta: com.example.smartbite.data.RecipeDetail) {
+    val nutrients = receta.nutrition?.nutrients.orEmpty()
+    if (nutrients.isEmpty()) {
+        Text(
+            "Información nutricional no disponible para esta receta.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+
+    val preferredNames = listOf("Calories", "Protein", "Carbohydrates", "Fat")
+    val preferred = preferredNames.mapNotNull { preferredName ->
+        nutrients.firstOrNull { it.name.equals(preferredName, ignoreCase = true) }
+    }
+    val visibleNutrients = (preferred + nutrients).distinctBy { it.name }.take(6)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            visibleNutrients.forEach { nutrient ->
+                val label = when (nutrient.name.lowercase(Locale.ROOT)) {
+                    "calories" -> "Calorías"
+                    "protein" -> "Proteínas"
+                    "carbohydrates" -> "Carbohidratos"
+                    "fat" -> "Grasas"
+                    else -> nutrient.name
+                }
+                Text("$label: ${String.format(Locale.getDefault(), "%.1f", nutrient.amount)} ${nutrient.unit}")
             }
         }
     }

@@ -86,6 +86,19 @@ class ListaComprasRepository {
         }
     }
 
+    suspend fun limpiarLista(): Result<Unit> {
+        return try {
+            val userId = requireUserId()
+            SupabaseClient.client.postgrest["lista_compras"]
+                .delete {
+                    filter { eq("user_id", userId) }
+                }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun actualizarEstado(id: Int, estado: String): Result<Unit> {
         return try {
             val userId = requireUserId()

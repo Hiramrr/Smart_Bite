@@ -6,7 +6,10 @@ import com.smart.comida.data.model.Desperdicio
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import io.github.jan.supabase.storage.storage
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
@@ -14,6 +17,17 @@ import kotlin.math.abs
 data class DescuentoIngredienteInventario(
     val ingrediente: Ingrediente,
     val cantidadADescontar: Float
+)
+
+@Serializable
+private data class DescuentoPreparacionRpc(
+    @SerialName("ingrediente_id") val ingredienteId: Int,
+    val cantidad: Float
+)
+
+@Serializable
+private data class PrepararRecetaRpcParams(
+    @SerialName("p_descuentos") val descuentos: List<DescuentoPreparacionRpc>
 )
 
 class InventarioRepository {
@@ -326,58 +340,28 @@ class InventarioRepository {
     suspend fun descontarIngredientes(descuentos: List<DescuentoIngredienteInventario>): Result<Unit> {
         if (descuentos.isEmpty()) return Result.success(Unit)
 
-        val userId = try {
+        try {
             requireUserId()
         } catch (e: Exception) {
             return Result.failure(e)
         }
 
-        val ingredientesActualizados = mutableListOf<Ingrediente>()
-        val fechaConsumo = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-
         return try {
-            descuentos.forEach { descuento ->
-                val ingrediente = descuento.ingrediente
-                val ingredienteId = ingrediente.id
-                    ?: throw IllegalArgumentException("Ingrediente sin ID válido")
-
-                val nuevaCantidad = (ingrediente.cantidad - descuento.cantidadADescontar).coerceAtLeast(0f)
-                val ingredienteActualizado = ingrediente.copy(
-                    cantidad = nuevaCantidad,
-                    userId = userId
-                )
-
-                SupabaseClient.client.postgrest["ingredientes"]
-                    .update(ingredienteActualizado) {
-                        filter {
-                            eq("id", ingredienteId)
-                            eq("user_id", userId)
-                        }
-                    }
-
-                ingredientesActualizados.add(ingrediente)
-            }
-
-            val consumos = descuentos.map { descuento ->
-                crearRegistroConsumo(descuento.ingrediente, descuento.cantidadADescontar, userId, fechaConsumo)
-            }
-            SupabaseClient.client.postgrest["historial_consumo"].insert(consumos)
-
+            val rpcParams = PrepararRecetaRpcParams(
+                descuentos = descuentos.map { descuento ->
+                    DescuentoPreparacionRpc(
+                        ingredienteId = descuento.ingrediente.id
+                            ?: throw IllegalArgumentException("Ingrediente sin ID válido"),
+                        cantidad = descuento.cantidadADescontar
+                    )
+                }
+            )
+            SupabaseClient.client.postgrest.rpc(
+                function = "preparar_receta",
+                parameters = rpcParams
+            )
             Result.success(Unit)
         } catch (e: Exception) {
-            ingredientesActualizados.forEach { ingredienteOriginal ->
-                val ingredienteId = ingredienteOriginal.id ?: return@forEach
-                runCatching {
-                    SupabaseClient.client.postgrest["ingredientes"]
-                        .update(ingredienteOriginal.copy(userId = userId)) {
-                            filter {
-                                eq("id", ingredienteId)
-                                eq("user_id", userId)
-                            }
-                        }
-                }
-            }
-
             Result.failure(e)
         }
     }

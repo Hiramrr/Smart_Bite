@@ -18,6 +18,8 @@ class DescontarViewModel : ViewModel() {
     var uiState by mutableStateOf<DescontarUiState>(DescontarUiState.Idle)
         private set
 
+    private var cantidadDisponiblePendiente: Float? = null
+
     fun cargarIngrediente(id: Int) {
         uiState = DescontarUiState.Loading
         viewModelScope.launch {
@@ -55,13 +57,34 @@ class DescontarViewModel : ViewModel() {
 
         // FA-02: Validar stock disponible
         if (cantidadProcesada > ing.cantidad) {
-            uiState = DescontarUiState.Error("No puedes descontar más de lo que tienes en stock (${ing.cantidad} ${ing.unidad}).")
+            cantidadDisponiblePendiente = ing.cantidad
+            uiState = DescontarUiState.StockExceeded(
+                cantidadSolicitada = cantidadProcesada,
+                cantidadDisponible = ing.cantidad,
+                unidad = ing.unidad
+            )
             return
         }
 
+        ejecutarDescuento(ing, cantidadProcesada)
+    }
+
+    fun confirmarDescuentoDisponible() {
+        val ing = ingrediente ?: return
+        val cantidadDisponible = cantidadDisponiblePendiente ?: return
+        cantidadDisponiblePendiente = null
+        ejecutarDescuento(ing, cantidadDisponible)
+    }
+
+    fun corregirCantidad() {
+        cantidadDisponiblePendiente = null
+        uiState = DescontarUiState.Idle
+    }
+
+    private fun ejecutarDescuento(ing: Ingrediente, cantidad: Float) {
         uiState = DescontarUiState.Loading
         viewModelScope.launch {
-            repository.descontarIngrediente(ing, cantidadProcesada).onSuccess {
+            repository.descontarIngrediente(ing, cantidad).onSuccess {
                 uiState = DescontarUiState.Success
             }.onFailure {
                 uiState = DescontarUiState.Error("No se pudo actualizar el inventario", it)
@@ -78,5 +101,10 @@ sealed class DescontarUiState {
     object Idle : DescontarUiState()
     object Loading : DescontarUiState()
     object Success : DescontarUiState()
+    data class StockExceeded(
+        val cantidadSolicitada: Float,
+        val cantidadDisponible: Float,
+        val unidad: String?
+    ) : DescontarUiState()
     data class Error(val message: String, val throwable: Throwable? = null) : DescontarUiState()
 }

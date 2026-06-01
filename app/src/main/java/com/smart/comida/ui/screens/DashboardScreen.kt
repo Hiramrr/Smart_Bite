@@ -69,13 +69,8 @@ fun DashboardScreen(
         viewModel.cargarIngredientes()
     }
 
-    LaunchedEffect(uiState) {
-        if (uiState is DespensaUiState.Success) {
-            recipeViewModel.getRecommendationsFromPantry(uiState.ingredientes)
-        }
-    }
-
     val recommendationsUiState by recipeViewModel.recommendationsUiState.collectAsState()
+    val isRateLimitActive by recipeViewModel.isRateLimitActive.collectAsState()
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -274,10 +269,15 @@ fun DashboardScreen(
             // ¿Qué cocino hoy? - Recomendaciones basadas en caducidad
             RecommendationsSection(
                 uiState = recommendationsUiState,
+                ingredientes = (uiState as? DespensaUiState.Success)?.ingredientes.orEmpty(),
+                isRateLimitActive = isRateLimitActive,
+                onBuscarConDespensa = { ingredientes ->
+                    recipeViewModel.getRecommendationsFromPantry(ingredientes)
+                },
                 onRecetaClick = onRecetaClick
             )
 
-            // Por vencer pronto
+            // Vista rápida de la despensa: primero lo urgente y después otros productos.
             when (uiState) {
                 is DespensaUiState.Loading -> {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -286,7 +286,7 @@ fun DashboardScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Por vencer pronto", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+                            Text("Productos de tu despensa", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
                         }
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(4) {
@@ -305,17 +305,21 @@ fun DashboardScreen(
                     )
                 }
                 is DespensaUiState.Success -> {
-                    val ingredientes = uiState.ingredientes
+                    val porVencer = uiState.ingredientes
                         .filter { diasHastaCaducidad(it) != null }
                         .sortedBy { diasHastaCaducidad(it) }
-                        .take(4)
+                    val idsPorVencer = porVencer.mapNotNull { it.id }.toSet()
+                    val otrosProductos = uiState.ingredientes.filter { ingrediente ->
+                        ingrediente.id?.let { it !in idsPorVencer } ?: (ingrediente !in porVencer)
+                    }
+                    val ingredientes = (porVencer + otrosProductos).take(4)
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Por vencer pronto", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
+                        Text("Productos de tu despensa", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colorScheme.onBackground)
                         Text(
                             "Ver todos",
                             fontSize = 14.sp,
@@ -328,8 +332,8 @@ fun DashboardScreen(
                     if (ingredientes.isEmpty()) {
                         EmptyState(
                             icon = Icons.Default.Kitchen,
-                            title = "Nada por vencer pronto",
-                            description = "Cuando un ingrediente esté cerca de caducar, aparecerá aquí.",
+                            title = "Tu despensa está vacía",
+                            description = "Agrega ingredientes para verlos aquí.",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(220.dp)
@@ -427,6 +431,9 @@ private fun diasHastaCaducidad(ingrediente: Ingrediente): Long? {
 @Composable
 fun RecommendationsSection(
     uiState: RecommendationsUiState,
+    ingredientes: List<Ingrediente>,
+    isRateLimitActive: Boolean,
+    onBuscarConDespensa: (List<Ingrediente>) -> Unit,
     onRecetaClick: (Int) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -438,6 +445,14 @@ fun RecommendationsSection(
             fontWeight = FontWeight.Bold,
             color = colorScheme.onBackground
         )
+
+        Button(
+            onClick = { onBuscarConDespensa(ingredientes) },
+            enabled = ingredientes.isNotEmpty() && !isRateLimitActive && uiState !is RecommendationsUiState.Loading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Buscar recetas con mis ingredientes")
+        }
 
         when (uiState) {
             is RecommendationsUiState.Loading -> {
@@ -472,13 +487,23 @@ fun RecommendationsSection(
             }
             is RecommendationsUiState.Error -> {
                 Text(
-                    "No pudimos cargar recomendaciones en este momento.",
+                    uiState.message,
                     fontSize = 14.sp,
                     color = colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            else -> {}
+            else -> {
+                Text(
+                    if (ingredientes.isEmpty()) {
+                        "Agrega ingredientes a tu despensa para buscar recetas disponibles."
+                    } else {
+                        "Usaremos los ingredientes disponibles en tu despensa y tus preferencias dietéticas."
+                    },
+                    fontSize = 14.sp,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

@@ -10,9 +10,8 @@ import com.smart.comida.data.repository.InventarioRepository
 import com.smart.comida.data.repository.OpenFoodFactsRepository
 import com.smart.comida.data.repository.ProductDetails
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 class IngredienteViewModel : ViewModel() {
     private val repository = InventarioRepository()
@@ -69,33 +68,27 @@ class IngredienteViewModel : ViewModel() {
         val nombreTrimmed = nombre.trim()
 
         // --- FA-01: 'Campos vacíos' ---
-        if (nombreTrimmed.isBlank() || cantidadStr.isBlank() || unidad.isBlank()) {
+        if (nombreTrimmed.isBlank() || cantidadStr.isBlank() || unidad.isBlank() ||
+            fechaCaducidad.isBlank() || categoriaId == null) {
             uiState = IngredienteUiState.Error("Por favor, completa los campos obligatorios.")
             return
         }
 
         val cantidad = cantidadStr.toFloatOrNull()
-        if (cantidad == null || cantidad < 0) {
-            uiState = IngredienteUiState.Error("La cantidad debe ser un número válido mayor o igual a 0.")
+        if (cantidad == null || cantidad <= 0) {
+            uiState = IngredienteUiState.Error("La cantidad debe ser un número válido mayor a 0.")
             return
         }
 
         // --- VALIDACIÓN DE FECHA ---
-        if (fechaCaducidad.isNotBlank()) {
-            try {
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val fechaSeleccionada = sdf.parse(fechaCaducidad)
-                val hoyStr = sdf.format(Date())
-                val fechaHoy = sdf.parse(hoyStr)
-
-                if (fechaSeleccionada != null && fechaHoy != null && fechaSeleccionada.before(fechaHoy)) {
-                    uiState = IngredienteUiState.Error("La fecha de caducidad debe ser mayor o igual a la de hoy.")
-                    return
-                }
-            } catch (e: Exception) {
-                uiState = IngredienteUiState.Error("Formato de fecha inválido.")
+        try {
+            if (LocalDate.parse(fechaCaducidad).isBefore(LocalDate.now())) {
+                uiState = IngredienteUiState.Error("La fecha de caducidad debe ser mayor o igual a la de hoy.")
                 return
             }
+        } catch (e: DateTimeParseException) {
+            uiState = IngredienteUiState.Error("Formato de fecha inválido.")
+            return
         }
 
         uiState = IngredienteUiState.Loading

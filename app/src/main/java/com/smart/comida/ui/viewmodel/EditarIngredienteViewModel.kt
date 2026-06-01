@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.repository.InventarioRepository
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 class EditarIngredienteViewModel : ViewModel() {
     private val repository = InventarioRepository()
@@ -50,7 +52,8 @@ class EditarIngredienteViewModel : ViewModel() {
     fun guardarCambios(id: Int, imagenBytes: ByteArray? = null) { // Acepta la foto nueva
         val nombreTrimmed = nombre.trim()
 
-        if (nombreTrimmed.isBlank() || cantidad.isBlank() || unidad.isBlank()) {
+        if (nombreTrimmed.isBlank() || cantidad.isBlank() || unidad.isBlank() ||
+            categoriaSeleccionada == null) {
             uiState = IngredienteUiState.Error("Completa los campos obligatorios.")
             return
         }
@@ -62,8 +65,12 @@ class EditarIngredienteViewModel : ViewModel() {
         }
 
         if (fechaCaducidad.isNotBlank()) {
-            val dateRegex = "^\\d{4}-\\d{2}-\\d{2}$".toRegex()
-            if (!fechaCaducidad.matches(dateRegex)) {
+            try {
+                if (LocalDate.parse(fechaCaducidad).isBefore(LocalDate.now())) {
+                    uiState = IngredienteUiState.Error("La fecha de caducidad debe ser mayor o igual a la de hoy.")
+                    return
+                }
+            } catch (e: DateTimeParseException) {
                 uiState = IngredienteUiState.Error("El formato de la fecha debe ser YYYY-MM-DD.")
                 return
             }

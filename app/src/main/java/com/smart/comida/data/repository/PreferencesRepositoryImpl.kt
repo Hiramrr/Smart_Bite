@@ -30,7 +30,7 @@ class PreferencesRepositoryImpl(
 
             // Si existen datos en la nube, actualizamos nuestra fuente de verdad local
             if (remotePrefs != null) {
-                preferencesDataStore.savePreferences(remotePrefs.diets, remotePrefs.intolerances)
+                preferencesDataStore.savePreferences(userId, remotePrefs.diets, remotePrefs.intolerances)
             }
             remotePrefs
         }
@@ -62,7 +62,7 @@ class PreferencesRepositoryImpl(
             postgrest.upsert(value = updatedPreferences, onConflict = "user_id")
 
             // 4. Si el servidor responde de manera exitosa, actualizamos el almacenamiento local
-            preferencesDataStore.savePreferences(diets, intolerances)
+            preferencesDataStore.savePreferences(userId, diets, intolerances)
         }
     }
 }

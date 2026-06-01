@@ -71,6 +71,31 @@ fun DescontarCantidadScreen(
 
     val colorScheme = MaterialTheme.colorScheme
 
+    val stockExceeded = viewModel.uiState as? DescontarUiState.StockExceeded
+    if (stockExceeded != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::corregirCantidad,
+            title = { Text("Cantidad mayor al stock") },
+            text = {
+                Text(
+                    "Solicitaste ${stockExceeded.cantidadSolicitada} ${stockExceeded.unidad.orEmpty()}, " +
+                        "pero solo tienes ${stockExceeded.cantidadDisponible} ${stockExceeded.unidad.orEmpty()}. " +
+                        "Puedes corregir la cantidad o descontar todo el stock disponible."
+                )
+            },
+            confirmButton = {
+                Button(onClick = viewModel::confirmarDescuentoDisponible) {
+                    Text("Descontar disponible")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::corregirCantidad) {
+                    Text("Corregir cantidad")
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = colorScheme.background,
         topBar = {

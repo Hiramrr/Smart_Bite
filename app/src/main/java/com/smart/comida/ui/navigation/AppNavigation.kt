@@ -467,7 +467,8 @@ fun AppNavigation(
                     onVolver = { navController.popBackStack() },
                     themeViewModel = themeViewModel,
                     onSignOut = { authViewModel.signOut() },
-                    onNavigateToCategorias = { navController.navigate("categorias") }
+                    onNavigateToCategorias = { navController.navigate("categorias") },
+                    onNavigateToDietaryPreferences = { navController.navigate("preferences") }
                 )
             }
 

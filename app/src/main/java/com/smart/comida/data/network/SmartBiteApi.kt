@@ -16,6 +16,7 @@ interface SmartBiteApi {
     // CU-09: Detalles de Receta
     @GET("api/recetas/detalle")
     suspend fun getRecipeDetails(
-        @Query("id") id: Int
+        @Query("id") id: Int,
+        @Query("includeNutrition") includeNutrition: Boolean = true
     ): RecipeDetail
 }

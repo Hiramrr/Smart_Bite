@@ -10,8 +10,11 @@ interface FavoritesRepository {
     // Método original para verificar estado en el detalle (CU-09)
     fun isFavorite(recipeId: Int, userId: String): Flow<Boolean>
 
-    // Método original para alternar estados desde el detalle (CU-10)
-    suspend fun toggleFavorite(recipe: FavoriteRecipeEntity, userId: String)
+    // Permite abrir el detalle local sin depender de la API (CU-09)
+    suspend fun getFavorite(userId: String, externalRecipeId: Int): FavoriteRecipeEntity?
+
+    // Guarda una receta una sola vez; retorna false cuando ya existía (CU-10)
+    suspend fun saveToFavorites(recipe: FavoriteRecipeEntity, userId: String): Boolean
 
     // NUEVO: Método explícito y atómico para la eliminación directa en CU-12
     suspend fun deleteFromFavorites(userId: String, externalRecipeId: Int)

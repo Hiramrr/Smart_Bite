@@ -3,17 +3,16 @@ package com.smart.comida.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -38,7 +37,6 @@ import com.smart.comida.data.model.ArticuloCompra
 import com.smart.comida.ui.components.EmptyState
 import com.smart.comida.ui.components.ShimmerComprasList
 import com.smart.comida.ui.theme.*
-import com.smart.comida.ui.viewmodel.CompraConfirmadaItem
 import com.smart.comida.ui.viewmodel.ListaComprasUiState
 import com.smart.comida.ui.viewmodel.ListaComprasViewModel
 import java.text.SimpleDateFormat
@@ -47,14 +45,6 @@ import java.time.format.DateTimeParseException
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-
-private data class ConfirmacionCompraForm(
-    val articulo: ArticuloCompra,
-    val fechaCaducidad: String = "",
-    val categoriaId: Int? = null,
-    val fechaError: Boolean = false,
-    val categoriaError: Boolean = false
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,14 +60,16 @@ fun ListaComprasScreen(
     var mostrarDialogoNuevo by remember { mutableStateOf(false) }
     var articuloEditando by remember { mutableStateOf<ArticuloCompra?>(null) }
     var articuloAEliminar by remember { mutableStateOf<ArticuloCompra?>(null) }
-    var productosAConfirmar by remember { mutableStateOf<List<ConfirmacionCompraForm>>(emptyList()) }
-    var categoriaExpandidaIndex by remember { mutableStateOf<Int?>(null) }
-    var fechaActivaIndex by remember { mutableStateOf<Int?>(null) }
+    var articuloCompradoParaDespensa by remember { mutableStateOf<ArticuloCompra?>(null) }
+    var solicitarFechaDespensa by remember { mutableStateOf(false) }
+    var fechaCaducidadCompra by remember { mutableStateOf("") }
+    var fechaCompraError by remember { mutableStateOf(false) }
+    var mostrarDatePickerCompra by remember { mutableStateOf(false) }
+    var mostrarDialogoLimpiarLista by remember { mutableStateOf(false) }
     var dialogKey by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarArticulos()
-        viewModel.cargarCategorias()
     }
 
     LaunchedEffect(viewModel.mensajeOperacion) {
@@ -228,175 +220,151 @@ fun ListaComprasScreen(
     }
 
     val datePickerState = rememberDatePickerState()
-    if (fechaActivaIndex != null) {
+    if (mostrarDatePickerCompra) {
         DatePickerDialog(
-            onDismissRequest = { fechaActivaIndex = null },
+            onDismissRequest = { mostrarDatePickerCompra = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val index = fechaActivaIndex
                         val selectedMillis = datePickerState.selectedDateMillis
-                        if (index != null && selectedMillis != null) {
+                        if (selectedMillis != null) {
                             val formato = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
                                 timeZone = TimeZone.getTimeZone("UTC")
                             }
-                            val fecha = formato.format(Date(selectedMillis))
-                            productosAConfirmar = productosAConfirmar.mapIndexed { itemIndex, item ->
-                                if (itemIndex == index) {
-                                    item.copy(fechaCaducidad = fecha, fechaError = !fechaCaducidadValida(fecha))
-                                } else {
-                                    item
-                                }
-                            }
+                            fechaCaducidadCompra = formato.format(Date(selectedMillis))
+                            fechaCompraError = !fechaCaducidadValida(fechaCaducidadCompra)
                         }
-                        fechaActivaIndex = null
+                        mostrarDatePickerCompra = false
                     }
                 ) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { fechaActivaIndex = null }) { Text("Cancelar") }
+                TextButton(onClick = { mostrarDatePickerCompra = false }) { Text("Cancelar") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
-    if (productosAConfirmar.isNotEmpty()) {
+    val articuloParaDespensa = articuloCompradoParaDespensa
+    if (articuloParaDespensa != null && !solicitarFechaDespensa) {
         AlertDialog(
-            onDismissRequest = { productosAConfirmar = emptyList() },
-            title = { Text("Confirmar compra", fontWeight = FontWeight.Bold) },
+            onDismissRequest = { articuloCompradoParaDespensa = null },
+            title = { Text("Producto comprado", fontWeight = FontWeight.Bold) },
             text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    productosAConfirmar.forEachIndexed { index, item ->
-                        val categoriaSeleccionada = viewModel.categorias.firstOrNull { it.id == item.categoriaId }
+                Text("¿Deseas mover ${articuloParaDespensa.nombre} a tu despensa?")
+            },
+            confirmButton = {
+                Button(onClick = { solicitarFechaDespensa = true }) {
+                    Text("Mover a despensa")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { articuloCompradoParaDespensa = null }) {
+                    Text("Solo marcar comprado")
+                }
+            }
+        )
+    }
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colorScheme.surfaceVariant.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(item.articulo.nombre, fontWeight = FontWeight.Bold, color = colorScheme.onSurface)
-                            item.articulo.cantidadEsperada?.let { cantidad ->
-                                val unidad = item.articulo.unidad?.let { " $it" }.orEmpty()
-                                Text("$cantidad$unidad", fontSize = 12.sp, color = colorScheme.onSurfaceVariant)
+    if (articuloParaDespensa != null && solicitarFechaDespensa) {
+        AlertDialog(
+            onDismissRequest = {
+                articuloCompradoParaDespensa = null
+                solicitarFechaDespensa = false
+                fechaCaducidadCompra = ""
+                fechaCompraError = false
+            },
+            title = { Text("Fecha de caducidad", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Selecciona la fecha de caducidad de ${articuloParaDespensa.nombre}.")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = fechaCaducidadCompra,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Fecha de caducidad") },
+                        placeholder = { Text("Seleccionar fecha") },
+                        isError = fechaCompraError,
+                        trailingIcon = {
+                            IconButton(onClick = { mostrarDatePickerCompra = true }) {
+                                Icon(Icons.Default.CalendarToday, contentDescription = "Seleccionar fecha")
                             }
-
-                            ExposedDropdownMenuBox(
-                                expanded = categoriaExpandidaIndex == index,
-                                onExpandedChange = {
-                                    categoriaExpandidaIndex = if (categoriaExpandidaIndex == index) null else index
-                                }
-                            ) {
-                                OutlinedTextField(
-                                    value = categoriaSeleccionada?.nombre ?: "",
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Categoría") },
-                                    placeholder = { Text("Seleccionar categoría") },
-                                    isError = item.categoriaError,
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpandidaIndex == index)
-                                    },
-                                    modifier = Modifier
-                                        .menuAnchor()
-                                        .fillMaxWidth()
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = categoriaExpandidaIndex == index,
-                                    onDismissRequest = { categoriaExpandidaIndex = null }
-                                ) {
-                                    viewModel.categorias.forEach { categoria ->
-                                        DropdownMenuItem(
-                                            text = { Text(categoria.nombre) },
-                                            onClick = {
-                                                productosAConfirmar = productosAConfirmar.mapIndexed { itemIndex, form ->
-                                                    if (itemIndex == index) {
-                                                        form.copy(categoriaId = categoria.id, categoriaError = false)
-                                                    } else {
-                                                        form
-                                                    }
-                                                }
-                                                categoriaExpandidaIndex = null
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                            if (item.categoriaError) {
-                                Text("Por favor, selecciona una categoría para el producto", color = colorScheme.error, fontSize = 12.sp)
-                            }
-
-                            OutlinedTextField(
-                                value = item.fechaCaducidad,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Fecha de caducidad") },
-                                placeholder = { Text("Seleccionar fecha") },
-                                isError = item.fechaError,
-                                trailingIcon = {
-                                    IconButton(onClick = { fechaActivaIndex = index }) {
-                                        Icon(Icons.Default.CalendarToday, contentDescription = "Seleccionar fecha")
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { fechaActivaIndex = index }
-                            )
-                            if (item.fechaError) {
-                                Text("Por favor, ingresa una fecha válida", color = colorScheme.error, fontSize = 12.sp)
-                            }
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth().clickable { mostrarDatePickerCompra = true }
+                    )
+                    if (fechaCompraError) {
+                        Text("Ingresa una fecha válida igual o posterior a hoy.", color = colorScheme.error, fontSize = 12.sp)
                     }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val actualizados = productosAConfirmar.map { item ->
-                            item.copy(
-                                fechaError = !fechaCaducidadValida(item.fechaCaducidad),
-                                categoriaError = item.categoriaId == null
-                            )
-                        }
-                        productosAConfirmar = actualizados
-
-                        if (actualizados.any { it.fechaError || it.categoriaError }) return@Button
-
-                        viewModel.confirmarCompra(
-                            actualizados.mapNotNull { item ->
-                                val articuloId = item.articulo.id ?: return@mapNotNull null
-                                CompraConfirmadaItem(
-                                    articuloId = articuloId,
-                                    nombre = item.articulo.nombre,
-                                    cantidad = item.articulo.cantidadEsperada?.toFloat() ?: 1f,
-                                    unidad = item.articulo.unidad,
-                                    fechaCaducidad = item.fechaCaducidad,
-                                    categoriaId = item.categoriaId ?: return@mapNotNull null
-                                )
-                            }
-                        )
-                        productosAConfirmar = emptyList()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
+                        fechaCompraError = !fechaCaducidadValida(fechaCaducidadCompra)
+                        if (fechaCompraError) return@Button
+                        viewModel.moverArticuloCompradoADespensa(articuloParaDespensa, fechaCaducidadCompra)
+                        articuloCompradoParaDespensa = null
+                        solicitarFechaDespensa = false
+                        fechaCaducidadCompra = ""
+                    }
                 ) {
-                    Text("Guardar", color = colorScheme.onPrimary)
+                    Text("Guardar en despensa")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { productosAConfirmar = emptyList() }) {
+                TextButton(
+                    onClick = {
+                        articuloCompradoParaDespensa = null
+                        solicitarFechaDespensa = false
+                        fechaCaducidadCompra = ""
+                        fechaCompraError = false
+                    }
+                ) {
                     Text("Cancelar")
                 }
             }
         )
     }
+
+    if (mostrarDialogoLimpiarLista) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoLimpiarLista = false },
+            title = { Text("Limpiar lista") },
+            text = { Text("¿Deseas eliminar todos los artículos de la lista de compras? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDialogoLimpiarLista = false
+                        viewModel.limpiarLista()
+                    }
+                ) {
+                    Text("Limpiar lista", color = colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoLimpiarLista = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    fun alternarEstadoComprado(articulo: ArticuloCompra) {
+        articulo.id?.let { id ->
+            viewModel.marcarComoComprado(id, articulo.estado) { nuevoEstado ->
+                if (nuevoEstado == "Comprado") {
+                    articuloCompradoParaDespensa = articulo
+                    solicitarFechaDespensa = false
+                    fechaCaducidadCompra = ""
+                    fechaCompraError = false
+                }
+            }
+        }
+    }
+
+    val hayArticulosEnLista = (uiState as? ListaComprasUiState.Success)?.articulos?.isNotEmpty() == true
 
     Scaffold(
         containerColor = colorScheme.background,
@@ -405,6 +373,11 @@ fun ListaComprasScreen(
             TopAppBar(
                 title = { Text("Lista de compras", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
                 actions = {
+                    if (hayArticulosEnLista) {
+                        IconButton(onClick = { mostrarDialogoLimpiarLista = true }) {
+                            Icon(Icons.Default.DeleteSweep, contentDescription = "Limpiar lista")
+                        }
+                    }
                     IconButton(onClick = { /* TODO */ }) {
                         Icon(Icons.Default.Share, contentDescription = "Compartir")
                     }
@@ -504,19 +477,15 @@ fun ListaComprasScreen(
                                 trackColor = colorScheme.primaryContainer
                             )
 
-                            val comprados = todos.filter { it.estado == "Comprado" }
-                            if (comprados.isNotEmpty()) {
-                                Button(
-                                    onClick = {
-                                        viewModel.cargarCategorias()
-                                        productosAConfirmar = comprados.map { ConfirmacionCompraForm(it) }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
-                                ) {
-                                    Text("Confirmar comprados (${comprados.size})", fontWeight = FontWeight.Bold, color = Color.White)
-                                }
+                            OutlinedButton(
+                                onClick = { mostrarDialogoLimpiarLista = true },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = colorScheme.error)
+                            ) {
+                                Icon(Icons.Default.DeleteSweep, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Limpiar lista", fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -539,7 +508,7 @@ fun ListaComprasScreen(
                                             }
                                             SwipeToDismissBoxValue.StartToEnd -> {
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                articulo.id?.let { viewModel.marcarComoComprado(it, articulo.estado) }
+                                                alternarEstadoComprado(articulo)
                                                 false
                                             }
                                             SwipeToDismissBoxValue.Settled -> false
@@ -549,7 +518,7 @@ fun ListaComprasScreen(
 
                                 SwipeToDismissBox(
                                     state = dismissState,
-                                    enableDismissFromStartToEnd = true,
+                                    enableDismissFromStartToEnd = articulo.estado != "Confirmado",
                                     enableDismissFromEndToStart = true,
                                     backgroundContent = {
                                         val direction = dismissState.dismissDirection
@@ -604,6 +573,11 @@ fun ListaComprasScreen(
                                                 .padding(16.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
+                                            Checkbox(
+                                                checked = isChecked,
+                                                onCheckedChange = { alternarEstadoComprado(articulo) },
+                                                enabled = articulo.estado != "Confirmado"
+                                            )
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(articulo.nombre, fontSize = 16.sp, color = textColor, fontWeight = FontWeight.Medium, textDecoration = textDecoration)
                                                 articulo.cantidadEsperada?.let {

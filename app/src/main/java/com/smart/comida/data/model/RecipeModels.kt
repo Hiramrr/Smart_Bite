@@ -20,7 +20,18 @@ data class RecipeDetail(
     @SerializedName("readyInMinutes") val readyInMinutes: Int,
     @SerializedName("servings") val servings: Int,
     @SerializedName("extendedIngredients") val extendedIngredients: List<Ingredient>,
-    @SerializedName("analyzedInstructions") val analyzedInstructions: List<Instruction>
+    @SerializedName("analyzedInstructions") val analyzedInstructions: List<Instruction>,
+    @SerializedName("nutrition") val nutrition: Nutrition? = null
+)
+
+data class Nutrition(
+    @SerializedName("nutrients") val nutrients: List<Nutrient> = emptyList()
+)
+
+data class Nutrient(
+    @SerializedName("name") val name: String,
+    @SerializedName("amount") val amount: Double,
+    @SerializedName("unit") val unit: String
 )
 
 data class Ingredient(

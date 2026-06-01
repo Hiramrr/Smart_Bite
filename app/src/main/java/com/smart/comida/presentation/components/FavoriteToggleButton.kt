@@ -22,7 +22,7 @@ fun FavoriteToggleButton(
     ) {
         Icon(
             imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-            contentDescription = if (isFavorite) "Quitar de favoritos" else "Guardar en favoritos",
+            contentDescription = if (isFavorite) "Receta guardada en favoritos" else "Guardar en favoritos",
             tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

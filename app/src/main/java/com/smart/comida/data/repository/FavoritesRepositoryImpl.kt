@@ -19,6 +19,11 @@ class FavoritesRepositoryImpl(
     override fun isFavorite(recipeId: Int, userId: String): Flow<Boolean> =
         dao.isFavorite(recipeId, userId)
 
+    override suspend fun getFavorite(userId: String, externalRecipeId: Int): FavoriteRecipeEntity? =
+        withContext(Dispatchers.IO) {
+            dao.getFavorite(externalRecipeId, userId)
+        }
+
     /**
      * Implementación atómica para el flujo normal de CU-12 (Paso 5).
      * Elimina directamente de la persistencia local sin consultas previas redundantes.
@@ -29,17 +34,14 @@ class FavoritesRepositoryImpl(
         }
     }
 
-    /**
-     * Mantiene la lógica original del Toggle para no romper el comportamiento de otras vistas.
-     */
-    override suspend fun toggleFavorite(recipe: FavoriteRecipeEntity, userId: String) {
+    override suspend fun saveToFavorites(recipe: FavoriteRecipeEntity, userId: String): Boolean =
         withContext(Dispatchers.IO) {
             val exists = dao.isFavorite(recipe.externalRecipeId, userId).first()
             if (exists) {
-                dao.deleteFavorite(recipe.externalRecipeId, userId)
+                false
             } else {
                 dao.insertFavorite(recipe)
+                true
             }
         }
-    }
 }

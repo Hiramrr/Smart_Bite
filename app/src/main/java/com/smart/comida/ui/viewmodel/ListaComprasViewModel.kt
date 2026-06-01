@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartbite.data.Ingredient
 import com.smart.comida.data.model.ArticuloCompra
-import com.smart.comida.data.model.Categoria
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.data.repository.InventarioRepository
 import com.smart.comida.data.repository.ListaComprasRepository
@@ -20,15 +19,6 @@ data class IngredienteFaltante(
     val nombre: String,
     val cantidad: Double?,
     val unidad: String?
-)
-
-data class CompraConfirmadaItem(
-    val articuloId: Int,
-    val nombre: String,
-    val cantidad: Float,
-    val unidad: String?,
-    val fechaCaducidad: String,
-    val categoriaId: Int
 )
 
 sealed class AgregarDesdeRecetaState {
@@ -50,9 +40,6 @@ class ListaComprasViewModel : ViewModel() {
         private set
 
     var agregarDesdeRecetaState by mutableStateOf<AgregarDesdeRecetaState>(AgregarDesdeRecetaState.Idle)
-        private set
-
-    var categorias by mutableStateOf<List<Categoria>>(emptyList())
         private set
 
     var mensajeOperacion by mutableStateOf<String?>(null)
@@ -138,10 +125,22 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
-    fun marcarComoComprado(id: Int, estadoActual: String?) {
+    fun limpiarLista() {
+        viewModelScope.launch {
+            repository.limpiarLista().onSuccess {
+                mensajeOperacion = "Lista de compras limpiada correctamente."
+                cargarArticulos()
+            }.onFailure {
+                mensajeOperacion = "No se pudo limpiar la lista. Inténtalo de nuevo."
+            }
+        }
+    }
+
+    fun marcarComoComprado(id: Int, estadoActual: String?, onSuccess: (String) -> Unit = {}) {
         val nuevoEstado = if (estadoActual == "Comprado") "Pendiente" else "Comprado"
         viewModelScope.launch {
             repository.actualizarEstado(id, nuevoEstado).onSuccess {
+                onSuccess(nuevoEstado)
                 cargarArticulos()
             }.onFailure {
                 mensajeOperacion = "No se pudo actualizar el artículo, revisa tu conexion a internet"
@@ -149,59 +148,36 @@ class ListaComprasViewModel : ViewModel() {
         }
     }
 
-    fun cargarCategorias() {
+    fun moverArticuloCompradoADespensa(articulo: ArticuloCompra, fechaCaducidad: String) {
+        val articuloId = articulo.id ?: return
         viewModelScope.launch {
-            inventarioRepository.obtenerCategorias().onSuccess { lista ->
-                categorias = lista
-            }.onFailure {
-                mensajeOperacion = "No se pudieron cargar las categorías. Revisa tu conexión."
-            }
-        }
-    }
-
-    fun confirmarCompra(productos: List<CompraConfirmadaItem>) {
-        if (productos.isEmpty()) return
-        viewModelScope.launch {
-            val ingredientesCreados = mutableListOf<Int>()
-
-            for (producto in productos) {
-                val resultado = inventarioRepository.agregarIngrediente(
-                    nombre = producto.nombre,
-                    cantidad = producto.cantidad,
-                    unidad = producto.unidad,
-                    fechaCaducidad = producto.fechaCaducidad,
-                    categoriaId = producto.categoriaId,
-                    imagenUrl = null
-                )
-
-                resultado.onSuccess { ingredienteId ->
-                    ingredientesCreados.add(ingredienteId)
+            inventarioRepository.agregarIngrediente(
+                nombre = articulo.nombre,
+                cantidad = articulo.cantidadEsperada?.toFloat() ?: 1f,
+                unidad = articulo.unidad,
+                fechaCaducidad = fechaCaducidad,
+                categoriaId = null,
+                imagenUrl = null
+            ).onSuccess { ingredienteId ->
+                repository.actualizarEstado(articuloId, "Confirmado").onSuccess {
                     viewModelScope.launch(Dispatchers.IO) {
-                        openFoodFactsRepository.buscarProductoPorNombre(producto.nombre).onSuccess { detalles ->
+                        openFoodFactsRepository.buscarProductoPorNombre(articulo.nombre).onSuccess { detalles ->
                             detalles?.imagenUrl?.let { url ->
                                 inventarioRepository.actualizarImagenIngrediente(ingredienteId, url)
                             }
                         }
                     }
-                }.onFailure {
-                    ingredientesCreados.forEach { ingredienteId ->
-                        inventarioRepository.eliminarIngrediente(ingredienteId)
-                    }
-                    mensajeOperacion = "Ocurrió un problema al guardar en la despensa. Inténtalo de nuevo."
-                    return@launch
-                }
-            }
-
-            for (producto in productos) {
-                repository.eliminarArticulo(producto.articuloId).onFailure {
-                    mensajeOperacion = "La despensa se actualizó, pero no se pudo limpiar la lista de compras."
+                    mensajeOperacion = "Producto agregado a tu despensa."
                     cargarArticulos()
-                    return@launch
+                }.onFailure {
+                    inventarioRepository.eliminarIngrediente(ingredienteId)
+                    mensajeOperacion = "No se pudo completar la compra. El artículo permanece marcado como comprado."
+                    cargarArticulos()
                 }
+            }.onFailure {
+                mensajeOperacion = "No se pudo agregar el producto a la despensa. El artículo permanece marcado como comprado."
+                cargarArticulos()
             }
-
-            mensajeOperacion = "Despensa actualizada. Se limpiaron los productos comprados."
-            cargarArticulos()
         }
     }
 

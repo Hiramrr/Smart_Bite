@@ -8,13 +8,17 @@ import com.example.smartbite.data.InstructionStep
 import com.example.smartbite.data.Recipe
 import com.example.smartbite.data.RecipeDetail
 import com.example.smartbite.data.repository.RecipeRepository
+import com.google.gson.Gson
 import com.smart.comida.data.model.Ingrediente
 import com.smart.comida.util.TranslationHelper
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import java.time.LocalDate
+import java.util.Locale
 
 sealed class RecipeUiState {
     object Idle : RecipeUiState()
@@ -39,6 +43,9 @@ class RecipeViewModel : ViewModel() {
 
     private val _recommendationsUiState = MutableStateFlow<RecommendationsUiState>(RecommendationsUiState.Idle)
     val recommendationsUiState: StateFlow<RecommendationsUiState> = _recommendationsUiState.asStateFlow()
+
+    private val _isRateLimitActive = MutableStateFlow(false)
+    val isRateLimitActive: StateFlow<Boolean> = _isRateLimitActive.asStateFlow()
 
     init {
         // Al iniciar el ViewModel, nos aseguramos de que los diccionarios estén listos
@@ -74,11 +81,11 @@ class RecipeViewModel : ViewModel() {
                     },
                     onFailure = { error ->
                         Log.e("API_ERROR", "Error de red: ${error.message}", error)
-                        _uiState.value = RecipeUiState.Error("Error de red", error)
+                        _uiState.value = RecipeUiState.Error(messageFor(error), error)
                     }
                 )
             } catch (e: Exception) {
-                _uiState.value = RecipeUiState.Error("Error inesperado", e)
+                _uiState.value = RecipeUiState.Error(messageFor(e), e)
             }
         }
     }
@@ -86,7 +93,17 @@ class RecipeViewModel : ViewModel() {
     // -----------------------------------------------------
     // CU-09: Obtener Detalles de Receta (Con traducción de vuelta)
     // -----------------------------------------------------
-    fun getRecipeDetail(id: Int) {
+    fun getRecipeDetail(id: Int, localRecipeJson: String? = null) {
+        if (!localRecipeJson.isNullOrBlank()) {
+            val localDetail = runCatching {
+                Gson().fromJson(localRecipeJson, RecipeDetail::class.java)
+            }.getOrNull()
+            if (localDetail != null) {
+                _uiState.value = RecipeUiState.DetailSuccess(localDetail)
+                return
+            }
+        }
+
         _uiState.value = RecipeUiState.Loading
 
         viewModelScope.launch {
@@ -156,30 +173,19 @@ class RecipeViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val hoy = LocalDate.now()
                 val ingredientesClave = ingredientes
-                    .filter { !it.fechaCaducidad.isNullOrEmpty() }
-                    .mapNotNull { ing ->
-                        val fecha = runCatching { LocalDate.parse(ing.fechaCaducidad) }.getOrNull()
-                        if (fecha != null && fecha.isAfter(hoy.minusDays(1))) {
-                            ing to fecha
-                        } else {
-                            null
-                        }
+                    .sortedBy { ingrediente ->
+                        runCatching { LocalDate.parse(ingrediente.fechaCaducidad) }
+                            .getOrNull() ?: LocalDate.MAX
                     }
-                    .sortedBy { it.second }
-                    .take(3)
-                    .map { it.first.nombre }
+                    .map { it.nombre.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinctBy { it.lowercase(Locale.ROOT) }
 
-                if (ingredientesClave.isEmpty()) {
-                    val randomIngs = ingredientes.shuffled().take(3).map { it.nombre }
-                    buscarRecomendaciones(randomIngs.joinToString(", "))
-                } else {
-                    buscarRecomendaciones(ingredientesClave.joinToString(", "))
-                }
+                buscarRecomendaciones(ingredientesClave.joinToString(", "))
             } catch (e: Exception) {
                 Log.e("RECOMMENDATIONS", "Error al procesar ingredientes", e)
-                _recommendationsUiState.value = RecommendationsUiState.Error("Error al procesar ingredientes")
+                _recommendationsUiState.value = RecommendationsUiState.Error(messageFor(e))
             }
         }
     }
@@ -193,12 +199,33 @@ class RecipeViewModel : ViewModel() {
                 onSuccess = { response ->
                     _recommendationsUiState.value = RecommendationsUiState.Success(response.results)
                 },
-                onFailure = {
-                    _recommendationsUiState.value = RecommendationsUiState.Error("Error de red")
+                onFailure = { error ->
+                    _recommendationsUiState.value = RecommendationsUiState.Error(messageFor(error))
                 }
             )
         } catch (e: Exception) {
-            _recommendationsUiState.value = RecommendationsUiState.Error("Error inesperado")
+            _recommendationsUiState.value = RecommendationsUiState.Error(messageFor(e))
         }
+    }
+
+    private fun messageFor(error: Throwable): String {
+        if (error is HttpException && error.code() == 429) {
+            startRateLimitCooldown()
+            return "Se alcanzó el límite temporal de búsquedas. Inténtalo de nuevo en un minuto."
+        }
+        return "No se pudo consultar el servicio de recetas. Verifica tu conexión e inténtalo de nuevo."
+    }
+
+    private fun startRateLimitCooldown() {
+        if (_isRateLimitActive.value) return
+        _isRateLimitActive.value = true
+        viewModelScope.launch {
+            delay(RATE_LIMIT_COOLDOWN_MS)
+            _isRateLimitActive.value = false
+        }
+    }
+
+    companion object {
+        private const val RATE_LIMIT_COOLDOWN_MS = 60_000L
     }
 }

@@ -43,6 +43,7 @@ fun RecipeListScreen(
     onSettingsClick: () -> Unit = {}
 ) {
     val uiState by recipeViewModel.uiState.collectAsState()
+    val isRateLimitActive by recipeViewModel.isRateLimitActive.collectAsState()
     var query by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -108,6 +109,7 @@ fun RecipeListScreen(
                 // ... (Sin cambios)
                 onClick = { if (query.isNotBlank()) recipeViewModel.searchRecipes(query) },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = query.isNotBlank() && !isRateLimitActive && uiState !is RecipeUiState.Loading,
                 colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {

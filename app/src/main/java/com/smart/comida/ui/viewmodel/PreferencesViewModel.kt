@@ -27,15 +27,23 @@ class PreferencesViewModel(
 
         _uiState.value = _uiState.value.copy(isLoading = true)
 
-        // 1. Sincronizar con la nube (por si abrió sesión en otro dispositivo)
-        //viewModelScope.launch {
-          //  repository.fetchPreferencesFromRemote(userId)
-        //}
+        viewModelScope.launch {
+            repository.fetchPreferencesFromRemote(userId)
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        message = "No se pudieron sincronizar las preferencias remotas. Se usarán las guardadas en este dispositivo."
+                    )
+                }
+        }
 
-        // 2. Suscribirse a la fuente de verdad local (DataStore)
         viewModelScope.launch {
             repository.getPreferencesFlow(userId)
-                .catch { /* Manejar error de lectura local si es necesario */ }
+                .catch {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        message = "No se pudieron cargar las preferencias guardadas."
+                    )
+                }
                 .collect { preferences ->
                     _uiState.value = _uiState.value.copy(
                         preferences = preferences,

@@ -214,20 +214,26 @@ class DespensaViewModel : ViewModel() {
         } else if (diasFiltroCaducidad != null) {
             val hoy = java.time.LocalDate.now()
             val fechaLimite = hoy.plusDays(diasFiltroCaducidad!!.toLong())
-            listaFiltrada = listaFiltrada.filter {
-                if (it.fechaCaducidad.isNullOrEmpty()) {
-                    false
-                } else {
-                    try {
+            val resultadoFiltro = runCatching {
+                listaFiltrada.filter {
+                    if (it.fechaCaducidad.isNullOrEmpty()) {
+                        false
+                    } else {
                         val fechaIngrediente = java.time.LocalDate.parse(it.fechaCaducidad)
                         !fechaIngrediente.isBefore(hoy) && !fechaIngrediente.isAfter(fechaLimite)
-                    } catch (e: Exception) {
-                        false
                     }
                 }
             }
+            if (resultadoFiltro.isFailure) {
+                uiState = DespensaUiState.Error(
+                    "No se pudo aplicar el filtro de caducidad. Intenta nuevamente.",
+                    resultadoFiltro.exceptionOrNull()
+                )
+                return
+            } else {
+                listaFiltrada = resultadoFiltro.getOrThrow()
+            }
         }
-
         listaFiltrada = when (ordenSeleccionado) {
             OrdenDespensa.CADUCIDAD -> listaFiltrada.sortedWith(
                 compareBy<Ingrediente> {

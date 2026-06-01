@@ -15,11 +15,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class PreferencesDataStore(private val context: Context) {
 
-    companion object {
-        // Llaves para almacenar los valores
-        val DIETS_KEY = stringSetPreferencesKey("diets")
-        val INTOLERANCES_KEY = stringSetPreferencesKey("intolerances")
-    }
+    private fun dietsKey(userId: String) = stringSetPreferencesKey("diets_$userId")
+    private fun intolerancesKey(userId: String) = stringSetPreferencesKey("intolerances_$userId")
 
     /**
      * Lee las preferencias del usuario como un flujo reactivo (Flow).
@@ -27,8 +24,8 @@ class PreferencesDataStore(private val context: Context) {
      */
     fun getUserPreferencesFlow(userId: String): Flow<UserPreferences> {
         return context.dataStore.data.map { preferences ->
-            val dietsSet = preferences[DIETS_KEY] ?: emptySet()
-            val intolerancesSet = preferences[INTOLERANCES_KEY] ?: emptySet()
+            val dietsSet = preferences[dietsKey(userId)] ?: emptySet()
+            val intolerancesSet = preferences[intolerancesKey(userId)] ?: emptySet()
 
             UserPreferences(
                 userId = userId,
@@ -41,19 +38,20 @@ class PreferencesDataStore(private val context: Context) {
     /**
      * Guarda las preferencias de dietas e intolerancias en el DataStore local.
      */
-    suspend fun savePreferences(diets: List<String>, intolerances: List<String>) {
+    suspend fun savePreferences(userId: String, diets: List<String>, intolerances: List<String>) {
         context.dataStore.edit { preferences ->
-            preferences[DIETS_KEY] = diets.toSet()
-            preferences[INTOLERANCES_KEY] = intolerances.toSet()
+            preferences[dietsKey(userId)] = diets.toSet()
+            preferences[intolerancesKey(userId)] = intolerances.toSet()
         }
     }
 
     /**
      * Limpia el DataStore. Útil para cuando el usuario cierra sesión (Logout).
      */
-    suspend fun clearPreferences() {
+    suspend fun clearPreferences(userId: String) {
         context.dataStore.edit { preferences ->
-            preferences.clear()
+            preferences.remove(dietsKey(userId))
+            preferences.remove(intolerancesKey(userId))
         }
     }
 }
